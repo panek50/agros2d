@@ -35,12 +35,7 @@
 int View::screenshot_no = 1;
 
 ///////////////// methods /////////////////
-View::View(const char* title, int x, int y, int width, int height)
-  : gl_pallete_tex_id(0)
-  , title(title), output_id(-1), output_x(x), output_y(y), output_width(width), output_height(height)
-  , vertices_min_x(0), vertices_max_x(0), vertices_min_y(0), vertices_max_y(0)
-  , view_not_reset(true)
-{
+void View::init() {
   jitter_x = jitter_y = 0.0;
   dragging = scaling = false;
   hq_frame = false;
@@ -68,6 +63,56 @@ View::View(const char* title, int x, int y, int width, int height)
   memset(rendering_frames, 0, FPS_FRAME_SIZE * sizeof(double));
 }
 
+View::View(const char* title, int x, int y, int width, int height)
+  : gl_pallete_tex_id(0)
+  , title(title), output_id(-1), output_x(x), output_y(y), output_width(width), output_height(height)
+  , vertices_min_x(0), vertices_max_x(0), vertices_min_y(0), vertices_max_y(0)
+  , view_not_reset(true)
+{
+  init();
+}
+
+View::View(const char* title, WinGeom* wg)
+  : gl_pallete_tex_id(0),
+    title(title), output_id(-1), vertices_min_x(0), vertices_max_x(0), vertices_min_y(0), vertices_max_y(0),
+    view_not_reset(true)
+{
+  if (wg == NULL) {
+    output_x = H2D_DEFAULT_X_POS;
+    output_y = H2D_DEFAULT_Y_POS;
+    output_width = H2D_DEFAULT_WIDTH;
+    output_height = H2D_DEFAULT_HEIGHT;
+  }
+  else {
+    output_x = wg->x;
+    output_y = wg->y;
+    output_width = wg->width;
+    output_height = wg->height;
+  }
+
+  init();
+}
+
+View::View(char* title, WinGeom* wg)
+  : gl_pallete_tex_id(0),
+    title(title), output_id(-1), vertices_min_x(0), vertices_max_x(0), vertices_min_y(0), vertices_max_y(0),
+    view_not_reset(true)
+{
+  if (wg == NULL) {
+    output_x = H2D_DEFAULT_X_POS;
+    output_y = H2D_DEFAULT_Y_POS;
+    output_width = H2D_DEFAULT_WIDTH;
+    output_height = H2D_DEFAULT_HEIGHT;
+  }
+  else {
+    output_x = wg->x;
+    output_y = wg->y;
+    output_width = wg->width;
+    output_height = wg->height;
+  }
+
+  init();
+}
 
 View::~View()
 {
@@ -276,8 +321,8 @@ void View::set_ortho_projection(bool no_jitter)
 
 void View::set_3d_projection(int fov, double znear, double zfar)
 {
-  double right = znear * tan((double) fov / 2.0 / 180.0 * M_PI);
-  double top = (double) output_height / output_width * right;
+  double top = znear * tan((double) fov / 2.0 / 180.0 * M_PI);
+  double right = (double) output_width / output_height * top;
   double left = -right;
   double bottom = -top;
 	double offsx = (right - left) / output_width * jitter_x;
@@ -321,7 +366,8 @@ void View::draw_fps()
   glDisable(GL_BLEND);
   glColor3f(1.0f, 0.0f, 0.0f);
   glRasterPos2i(output_width - (width_px + edge_thickness), edge_thickness + height_px);
-  glutBitmapString(font, buffer);
+  // If the following line is uncommented, timing information is printed into the image.
+  //glutBitmapString(font, buffer);
 }
 
 void View::on_reshape(int width, int height)
@@ -637,6 +683,10 @@ void View::update_tex_adjust()
 
 void View::set_min_max_range(double min, double max)
 {
+  if (max < min) {
+    std::swap(min, max);
+    warn("Upper bound set below the lower bound: reversing to (%f,%f).", min, max);
+  }
   view_sync.enter();
   range_min = min;
   range_max = max;
@@ -835,7 +885,7 @@ void View::save_screenshot_internal(const char *file_name)
 
   fclose(file);
   free((void*) pixels);
-  info("Image \"%s\" saved.", file_name);
+  printf("Image \"%s\" saved.\n", file_name);
 }
 
 

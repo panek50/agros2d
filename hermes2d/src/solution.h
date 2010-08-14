@@ -19,6 +19,7 @@
 #include "function.h"
 #include "space.h"
 #include "refmap.h"
+#include "matrix.h"
 
 class PrecalcShapeset;
 
@@ -37,7 +38,11 @@ class H2D_API MeshFunction : public ScalarFunction
 public:
 
   MeshFunction();
+  MeshFunction(Mesh *mesh);
   virtual ~MeshFunction();
+
+  virtual void init() {};
+  virtual void reinit() {free(); init();};
 
   virtual void set_quad_2d(Quad2D* quad_2d);
   virtual void set_active_element(Element* e);
@@ -82,6 +87,8 @@ class H2D_API Solution : public MeshFunction
 public:
 
   Solution();
+  Solution(Mesh *mesh);
+  Solution (Space* s, Vector* vec);
   virtual ~Solution();
   virtual void free();
 
@@ -89,8 +96,10 @@ public:
   Solution& operator = (Solution& sln) { assign(&sln); return *this; }
   void copy(const Solution* sln);
 
-  void set_exact(Mesh* mesh, scalar   (*exactfn)(double x, double y, scalar& dx , scalar& dy));
-  void set_exact(Mesh* mesh, scalar2& (*exactfn)(double x, double y, scalar2& dx, scalar2& dy));
+  int* get_element_orders() { return this->elem_orders;}
+
+  void set_exact(Mesh* mesh, ExactFunction exactfn);
+  void set_exact(Mesh* mesh, ExactFunction2 exactfn);
 
   void set_const(Mesh* mesh, scalar c);
   void set_const(Mesh* mesh, scalar c0, scalar c1); // two-component (Hcurl) const
@@ -147,8 +156,9 @@ public:
 
 public:
 
-  /// Internal. Used by LinSystem::solve(). Should not be called directly
-  virtual void set_fe_solution(Space* space, PrecalcShapeset* pss, scalar* vec, double dir = 1.0);
+  /// Converts a coefficient vector into a Solution.
+  virtual void set_fe_solution(Space* space, PrecalcShapeset* pss, Vector* vec, double dir = 1.0);
+  virtual void set_fe_solution(Space* space, Vector* vec, double dir = 1.0);
 
   /// Internal.
   virtual void set_active_element(Element* e);
@@ -174,8 +184,8 @@ protected:
   int space_type;
   void transform_values(int order, Node* node, int newmask, int oldmask, int np);
 
-  scalar   (*exactfn1)(double x, double y, scalar& dx,  scalar& dy);
-  scalar2& (*exactfn2)(double x, double y, scalar2& dx, scalar2& dy);
+  ExactFunction exactfn1;
+  ExactFunction2 exactfn2;
   scalar   cnst[2];
   scalar   exact_mult;
 
@@ -193,7 +203,7 @@ protected:
 };
 
 
-/// \brief Represents and exact solution of a PDE.
+/// \brief Represents an exact solution of a PDE.
 ///
 /// ExactSolution represents an arbitrary user-specified function defined on a domain (mesh),
 /// typically an exact solution to a PDE. This can be used to compare an approximate solution
@@ -206,16 +216,16 @@ class H2D_API ExactSolution : public Solution
 {
 public:
 
-  ExactSolution(Mesh* mesh, scalar   (*exactfn)(double x, double y, scalar& dx , scalar& dy))
+  ExactSolution(Mesh* mesh, ExactFunction exactfn)
     { set_exact(mesh, exactfn); }
 
-  ExactSolution(Mesh* mesh, scalar2& (*exactfn)(double x, double y, scalar2& dx, scalar2& dy))
+  ExactSolution(Mesh* mesh, ExactFunction2 exactfn)
     { set_exact(mesh, exactfn); }
 
-  int update(Mesh* mesh, scalar   (*exactfn)(double x, double y, scalar& dx , scalar& dy))
+  int update(Mesh* mesh, ExactFunction exactfn)
     { set_exact(mesh, exactfn);  return 1; }
 
-  int update(Mesh* mesh, scalar2& (*exactfn)(double x, double y, scalar2& dx, scalar2& dy))
+  int update(Mesh* mesh, ExactFunction2 exactfn)
     { set_exact(mesh, exactfn);  return 1; }
 
 };

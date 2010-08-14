@@ -26,7 +26,11 @@
 #include "../linear.h"
 
 // Constants
-#define DEFAULT_WINDOW_POS  int x = -1, int y = -1, int width = 1000, int height = 800 ///< Default size and window position.
+#define H2D_DEFAULT_X_POS -1
+#define H2D_DEFAULT_Y_POS -1
+#define H2D_DEFAULT_WIDTH 600
+#define H2D_DEFAULT_HEIGHT 400
+#define DEFAULT_WINDOW_POS  int x = H2D_DEFAULT_X_POS, int y = H2D_DEFAULT_Y_POS, int width = H2D_DEFAULT_WIDTH, int height = H2D_DEFAULT_HEIGHT ///< Default size and window position.
 #define H2DV_SCALE_LOG_BASE 1.005 ///< Base of the scale coefficient. Scale = base^{mouse move}.
 
 /// Wait events.
@@ -34,6 +38,20 @@ enum ViewWaitEvent {
   H2DV_WAIT_CLOSE, ///< Wait for all windows to close.
   H2DV_WAIT_KEYPRESS, ///< Wait for any unprocessed keypress to happen.
 };
+
+struct WinGeom {
+  int x;
+  int y;
+  int width;
+  int height;
+
+  WinGeom(int x, int y, int width, int height) {
+    this->x = x;
+    this->y = y;
+    this->width = width;
+    this->height = height;
+  };
+}; 
 
 /// View palette type.
 enum ViewPaletteType {
@@ -60,7 +78,10 @@ class H2D_API View
 {
 public:
 
+  void init();
   View(const char* title, int x, int y, int width, int height);
+  View(const char* title, WinGeom* wg = NULL);
+  View(char* title, WinGeom* wg = NULL);
   virtual ~View();
 
   int  create();
@@ -218,6 +239,7 @@ class H2D_API View
 public:
   View() {}
   View(const char* title, int x, int y, int width, int height) {}
+  View(const char* title, int win_geom[4]) {}
   ~View() {}
   int  create() { return 0; }
   void close() {}

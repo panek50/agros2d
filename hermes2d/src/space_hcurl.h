@@ -28,15 +28,21 @@ class H2D_API HcurlSpace : public Space
 {
 public:
 
-  HcurlSpace(Mesh* mesh, Shapeset* shapeset);
+  HcurlSpace(Mesh* mesh = NULL, BCType (*bc_type_callback)(int) = NULL, 
+                 scalar (*bc_value_callback_by_coord)(int, double, double) = NULL, int p_init = 1, 
+                 Shapeset* shapeset = NULL);
   virtual ~HcurlSpace();
 
   virtual Space* dup(Mesh* mesh) const;
 
   virtual int get_type() const { return 1; }
 
-  /// Sets element polynomial order.
+  /// Sets element polynomial order and calls assign_dofs(). Intended for the user.
   virtual void set_element_order(int id, int order);
+
+  /// Sets element polynomial order without calling assign_dofs(). For internal use.
+  virtual void set_element_order_internal(int id, int order);
+
 
 protected:
 

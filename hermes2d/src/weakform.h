@@ -20,8 +20,8 @@
 #include "function.h"
 
 class RefMap;
-class LinSystem;
-class NonlinSystem;
+class DiscreteProblem;
+class LinearProblem;
 class Space;
 class MeshFunction;
 struct EdgePos;
@@ -33,8 +33,7 @@ template<typename T> class Func;
 template<typename T> class Geom;
 template<typename T> class ExtData;
 
-
-// Bilinear form symmetry flag, see WeakForm::add_biform
+// Bilinear form symmetry flag, see WeakForm::add_matrix_form
 enum SymFlag
 {
   H2D_ANTISYM = -1,
@@ -52,52 +51,51 @@ enum SymFlag
 ///
 ///
 ///
+
 class H2D_API WeakForm
 {
 public:
 
-  WeakForm(int neq, bool mat_free = false);
+  WeakForm(int neq = 1, bool mat_free = false);
 
-  int def_area(int n, ...);
+  // general case
+  typedef scalar (*matrix_form_val_t)(int n, double *wt, Func<scalar> *u[], Func<double> *vi, Func<double> *vj, Geom<double> *e, ExtData<scalar> *);
+  typedef Ord (*matrix_form_ord_t)(int n, double *wt, Func<Ord> *u[], Func<Ord> *vi, Func<Ord> *vj, Geom<Ord> *e, ExtData<Ord> *);
+  typedef scalar (*vector_form_val_t)(int n, double *wt, Func<scalar> *u[], Func<double> *vi, Geom<double> *e, ExtData<scalar> *);
+  typedef Ord (*vector_form_ord_t)(int n, double *wt, Func<Ord> *u[], Func<Ord> *vi, Geom<Ord> *e, ExtData<Ord> *);
 
-  // linear case
-  typedef scalar (*biform_val_t) (int n, double *wt, Func<double> *u, Func<double> *v, Geom<double> *e, ExtData<scalar> *);
-  typedef Ord (*biform_ord_t) (int n, double *wt, Func<Ord> *u, Func<Ord> *v, Geom<Ord> *e, ExtData<Ord> *);
-  typedef scalar (*liform_val_t)(int n, double *wt, Func<double> *v, Geom<double> *e, ExtData<scalar> *v_ext_fnc);
-  typedef Ord (*liform_ord_t)(int n, double *wt, Func<Ord> *v, Geom<Ord> *e, ExtData<Ord> *v_ext_fnc);
-  typedef scalar (*liform_val_extended_t)(int n, double *wt, Func<double> *v, Geom<double> *e, ExtData<scalar> *v_ext_fnc, Element* element, Shapeset* shape_set, int shape_inx);
-  typedef Ord (*liform_ord_extended_t)(int n, double *wt, Func<Ord> *v, Geom<Ord> *e, ExtData<Ord> *v_ext_fnc, Element* element, Shapeset* shape_set, int shape_inx);
+  // general case
+  void add_matrix_form(int i, int j, matrix_form_val_t fn, matrix_form_ord_t ord, 
+		   SymFlag sym = H2D_UNSYM, int area = H2D_ANY, Tuple<MeshFunction*>ext = Tuple<MeshFunction*>());
+  void add_matrix_form(matrix_form_val_t fn, matrix_form_ord_t ord, 
+		   SymFlag sym = H2D_UNSYM, int area = H2D_ANY, Tuple<MeshFunction*>ext = Tuple<MeshFunction*>()); // single equation case
+  void add_matrix_form_surf(int i, int j, matrix_form_val_t fn, matrix_form_ord_t ord, 
+			int area = H2D_ANY, Tuple<MeshFunction*>ext = Tuple<MeshFunction*>());
+  void add_matrix_form_surf(matrix_form_val_t fn, matrix_form_ord_t ord, 
+			int area = H2D_ANY, Tuple<MeshFunction*>ext = Tuple<MeshFunction*>()); // single equation case
+  void add_vector_form(int i, vector_form_val_t fn, vector_form_ord_t ord, 
+		   int area = H2D_ANY, Tuple<MeshFunction*>ext = Tuple<MeshFunction*>());
+  void add_vector_form(vector_form_val_t fn, vector_form_ord_t ord, 
+		   int area = H2D_ANY, Tuple<MeshFunction*>ext = Tuple<MeshFunction*>()); // single equation case
+  void add_vector_form_surf(int i, vector_form_val_t fn, vector_form_ord_t ord, 
+			int area = H2D_ANY, Tuple<MeshFunction*>ext = Tuple<MeshFunction*>());
+  void add_vector_form_surf(vector_form_val_t fn, vector_form_ord_t ord, 
+			int area = H2D_ANY, Tuple<MeshFunction*>ext = Tuple<MeshFunction*>()); // single equation case
 
-  // nonlinear case
-  typedef scalar (*jacform_val_t)(int n, double *wt, Func<scalar> *u[], Func<double> *vi, Func<double> *vj, Geom<double> *e, ExtData<scalar> *);
-  typedef Ord (*jacform_ord_t)(int n, double *wt, Func<Ord> *u[], Func<Ord> *vi, Func<Ord> *vj, Geom<Ord> *e, ExtData<Ord> *);
-  typedef scalar (*resform_val_t)(int n, double *wt, Func<scalar> *u[], Func<double> *vi, Geom<double> *e, ExtData<scalar> *);
-  typedef Ord (*resform_ord_t)(int n, double *wt, Func<Ord> *u[], Func<Ord> *vi, Geom<Ord> *e, ExtData<Ord> *);
+  void set_ext_fns(void* fn, Tuple<MeshFunction*>ext = Tuple<MeshFunction*>());
 
-  // linear case
-  void add_biform(int i, int j, biform_val_t fn, biform_ord_t ord, SymFlag sym = H2D_UNSYM, int area = H2D_ANY, int nx = 0, ...);
-  void add_biform_surf(int i, int j, biform_val_t fn, biform_ord_t ord, int area = H2D_ANY, int nx = 0, ...);
-  void add_liform(int i, liform_val_t fn, liform_ord_t ord, int area = H2D_ANY, int nx = 0, ...);
-  void add_liform_surf(int i, liform_val_t fn, liform_ord_t ord, int area = H2D_ANY, int nx = 0, ...);
-  void add_liform(int i, liform_val_extended_t fn, liform_ord_extended_t ord, int area = H2D_ANY, int nx = 0, ...);
+  /// Returns the number of equations
+  int get_neq() { return neq; }
 
-  // nonlinear case
-  void add_jacform(int i, int j, jacform_val_t fn, jacform_ord_t ord, SymFlag sym = H2D_UNSYM, int area = H2D_ANY, int nx = 0, ...);
-  void add_jacform_surf(int i, int j, jacform_val_t fn, jacform_ord_t ord, int area = H2D_ANY, int nx = 0, ...);
-  void add_resform(int i, resform_val_t fn, resform_ord_t ord, int area = H2D_ANY, int nx = 0, ...);
-  void add_resform_surf(int i, resform_val_t fn, resform_ord_t ord, int area = H2D_ANY, int nx = 0, ...);
-
-  void set_ext_fns(void* fn, int nx, ...);
-
-  /// Internal. Used by LinSystem to detect changes in the weakform.
+  /// Internal. Used by DiscreteProblem to detect changes in the weakform.
   int get_seq() const { return seq; }
 
   bool is_matrix_free() { return is_matfree; }
 
+  int neq;
 
 protected:
 
-  int neq;
   int seq;
   bool is_matfree;
 
@@ -107,50 +105,21 @@ protected:
   std::vector<Area> areas;
   H2D_API_USED_STL_VECTOR(MeshFunction*);
 
-  // linear case
-  struct BiFormVol   {  int i, j, sym, area;  biform_val_t  fn;  biform_ord_t  ord;  std::vector<MeshFunction*> ext;  };
-  struct BiFormSurf  {  int i, j, area;       biform_val_t  fn;  biform_ord_t  ord;  std::vector<MeshFunction*> ext;  };
-  struct LiFormVol   {
-    int i, area;
-    std::vector<MeshFunction*> ext;
-
-  private:
-    liform_val_t fn;
-    liform_ord_t ord;
-    liform_val_extended_t fn_extended;
-    liform_ord_extended_t ord_extended;
-
   public:
     scalar evaluate_fn(int point_cnt, double *weights, Func<double> *values_v, Geom<double> *geometry, ExtData<scalar> *values_ext_fnc, Element* element, Shapeset* shape_set, int shape_inx); ///< Evaluate value of the user defined function.
     Ord evaluate_ord(int point_cnt, double *weights, Func<Ord> *values_v, Geom<Ord> *geometry, ExtData<Ord> *values_ext_fnc, Element* element, Shapeset* shape_set, int shape_inx); ///< Evaluate order of the user defined function.
 
-    LiFormVol() {};
-    LiFormVol(int i, int area, liform_val_t fn, liform_ord_t ord) : i(i), area(area), fn(fn), ord(ord), fn_extended(NULL), ord_extended(NULL) {};
-    LiFormVol(int i, int area, liform_val_extended_t fn_extended, liform_ord_extended_t ord_extended) : i(i), area(area), fn(NULL), ord(NULL), fn_extended(fn_extended), ord_extended(ord_extended) {};
-  };
-  struct LiFormSurf  {  int i, area;          liform_val_t  fn;  liform_ord_t  ord;  std::vector<MeshFunction*> ext;  };
+  // general case
+  struct MatrixFormVol  {  int i, j, sym, area;  matrix_form_val_t fn;  matrix_form_ord_t ord;  std::vector<MeshFunction *> ext; };
+  struct MatrixFormSurf {  int i, j, area;       matrix_form_val_t fn;  matrix_form_ord_t ord;  std::vector<MeshFunction *> ext; };
+  struct VectorFormVol  {  int i, area;          vector_form_val_t fn;  vector_form_ord_t ord;  std::vector<MeshFunction *> ext; };
+  struct VectorFormSurf {  int i, area;          vector_form_val_t fn;  vector_form_ord_t ord;  std::vector<MeshFunction *> ext; };
 
-  // nonlinear case
-  struct JacFormVol  {  int i, j, sym, area;  jacform_val_t fn;  jacform_ord_t ord;  std::vector<MeshFunction *> ext; };
-  struct JacFormSurf {  int i, j, area;       jacform_val_t fn;  jacform_ord_t ord;  std::vector<MeshFunction *> ext; };
-  struct ResFormVol  {  int i, area;          resform_val_t fn;  resform_ord_t ord;  std::vector<MeshFunction *> ext; };
-  struct ResFormSurf {  int i, area;          resform_val_t fn;  resform_ord_t ord;  std::vector<MeshFunction *> ext; };
-
-  // linear case
-  H2D_API_USED_STL_VECTOR(BiFormVol);
-  std::vector<BiFormVol>  bfvol;
-  H2D_API_USED_STL_VECTOR(BiFormSurf);
-  std::vector<BiFormSurf> bfsurf;
-  H2D_API_USED_STL_VECTOR(LiFormVol);
-  std::vector<LiFormVol>  lfvol;
-  H2D_API_USED_STL_VECTOR(LiFormSurf);
-  std::vector<LiFormSurf> lfsurf;
-
-  // nonlinear case
-  std::vector<JacFormVol>  jfvol;
-  std::vector<JacFormSurf> jfsurf;
-  std::vector<ResFormVol>  rfvol;
-  std::vector<ResFormSurf> rfsurf;
+  // general case
+  std::vector<MatrixFormVol>  mfvol;
+  std::vector<MatrixFormSurf> mfsurf;
+  std::vector<VectorFormVol>  vfvol;
+  std::vector<VectorFormSurf> vfsurf;
 
   struct Stage
   {
@@ -159,17 +128,11 @@ protected:
     std::vector<Transformable*> fns;
     std::vector<MeshFunction*> ext;
 
-    // linear case
-    std::vector<BiFormVol*>  bfvol;
-    std::vector<BiFormSurf*> bfsurf;
-    std::vector<LiFormVol*>  lfvol;
-    std::vector<LiFormSurf*> lfsurf;
-
-    // nonlinear case
-    std::vector<JacFormVol *>  jfvol;
-    std::vector<JacFormSurf *> jfsurf;
-    std::vector<ResFormVol *>  rfvol;
-    std::vector<ResFormSurf *> rfsurf;
+    // general case
+    std::vector<MatrixFormVol *>  mfvol;
+    std::vector<MatrixFormSurf *> mfsurf;
+    std::vector<VectorFormVol *>  vfvol;
+    std::vector<VectorFormSurf *> vfsurf;
 
     std::set<int> idx_set;
     std::set<unsigned> seq_set;
@@ -184,10 +147,9 @@ protected:
 
   bool is_sym() const { return false; /* not impl. yet */ }
 
-  friend class LinSystem;
-  friend class NonlinSystem;
-  friend class RefSystem;
-  friend class RefNonlinSystem;
+  friend class DiscreteProblem;
+  friend class RefDiscreteProblem;
+  friend class LinearProblem;
   friend class FeProblem;
   friend class Precond;
 
@@ -198,19 +160,6 @@ private:
                     Mesh* m1, Mesh* m2, std::vector<MeshFunction*>& ext);
 
   bool is_in_area_2(int marker, int area) const;
-
-  // FIXME: pretty dumb to test this in such a way
-  bool is_linear() {
-    return bfvol.size() > 0 || bfsurf.size() > 0 || lfvol.size() > 0 || lfsurf.size() > 0;
-  }
-
 };
-
-
-
-  //void def_ext_fn(const char* name);
-  //void def_exa_fn(const char* name);
-  //void def_const(const char* name, scalar value);
-
 
 #endif

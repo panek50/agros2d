@@ -72,6 +72,7 @@ Geom<double>* init_geom_surf(RefMap *rm, EdgePos* ep, const int order)
     e->tx[i] = tan[i][0];  e->ty[i] =   tan[i][1];
     e->nx[i] = tan[i][1];  e->ny[i] = - tan[i][0];
   }
+    e->orientation = rm->get_active_element()->get_edge_orientation(ep->edge);
 	return e;
 }
 
@@ -196,6 +197,10 @@ Func<double>* init_fn(PrecalcShapeset *fu, RefMap *rm, const int order)
 // Preparation of mesh-functions
 Func<scalar>* init_fn(MeshFunction *fu, RefMap *rm, const int order)
 {
+  // sanity checks
+  if (fu == NULL) error("NULL MeshFunction in Func<scalar>*::init_fn().");
+  if (fu->get_mesh() == NULL) error("Uninitialized MeshFunction used.");
+
   int nc = fu->get_num_components();
   Quad2D* quad = fu->get_quad_2d();
   fu->set_quad_order(order);

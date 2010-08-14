@@ -18,7 +18,7 @@
 
 #include "config.h"
 #include "itersolver.h"
-#include "matrix.h"
+#include "matrix_old.h"
 
 #ifdef HAVE_EPETRA
 #include <Epetra_SerialComm.h>
@@ -72,7 +72,7 @@ protected:
 };
 
 
-class EpetraVector : public Vector
+class EpetraVector : public _Vector
 {
 public:
 	EpetraVector();

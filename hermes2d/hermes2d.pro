@@ -18,6 +18,14 @@ SOURCES += src/compat/fmemopen.cpp \
         src/transform.cpp \
         src/traverse.cpp \
         src/shapeset.cpp \
+        src/shapeset_hc_gradeigen.cpp \
+        src/shapeset_hc_legendre.cpp \
+        src/shapeset_h1_ortho.cpp \
+        src/shapeset_l2_legendre.cpp \
+        src/shapeset_hc_gradleg.cpp \
+        src/shapeset_hd_legendre.cpp \
+        src/shapeset_h1_jacobi.cpp \
+        src/shapeset_h1_quad.cpp \
         src/precalc.cpp \
         src/solution.cpp \
         src/filter.cpp \
@@ -31,13 +39,6 @@ SOURCES += src/compat/fmemopen.cpp \
         src/linear3.cpp \
         src/graph.cpp \
         src/quad_std.cpp \
-        src/shapeset_h1_ortho.cpp \
-        src/shapeset_h1_beuchler.cpp \
-        src/shapeset_h1_quad.cpp \
-        src/shapeset_hc_legendre.cpp \
-        src/shapeset_hc_gradleg.cpp \
-        src/shapeset_hd_legendre.cpp \
-        src/shapeset_l2_legendre.cpp \
         src/qsort.cpp \
         src/norm.cpp \
         src/refinement_type.cpp \
@@ -50,22 +51,15 @@ SOURCES += src/compat/fmemopen.cpp \
         src/ref_selectors/proj_based_selector.cpp \
         src/ref_selectors/selector.cpp \
         src/adapt.cpp \
-        src/h1_adapt.cpp \
-        src/l2_adapt.cpp \
-        src/hcurl_adapt.cpp \
         src/common_time_period.cpp \
         src/matrix.cpp \
         src/hermes2d.cpp \
         src/weakform.cpp \
-        src/linsystem.cpp \
-        src/feproblem.cpp \
         src/solver_nox.cpp \
         src/solver_epetra.cpp \
         src/solver_aztecoo.cpp \
         src/precond_ml.cpp \
         src/precond_ifpack.cpp \
-        src/refsystem.cpp \
-        src/nonlinsystem.cpp \
         src/forms.cpp \
         src/mesh_parser.cpp \
         src/mesh_lexer.cpp \

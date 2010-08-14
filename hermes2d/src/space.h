@@ -103,23 +103,38 @@ class H2D_API Space
 {
 public:
 
-  Space(Mesh* mesh, Shapeset* shapeset);
+  Space(Mesh* mesh, Shapeset* shapeset, BCType (*bc_type_callback)(int), 
+        scalar (*bc_value_callback_by_coord)(int, double, double), int p_init);
   virtual ~Space();
   virtual void free();
 
-  /// Sets the BC types callback function.
+  /// Sets the BC types callback function. Calls assign_dofs() since the 
+  /// Space changes. The user can call this when changing BC types at runtime. 
   void set_bc_types(BCType (*bc_type_callback)(int marker));
+  /// Sets the BC types callback function; does not call assign_dofs(). To be 
+  /// used in constructor of the Space class only.
+  void set_bc_types_init(BCType (*bc_type_callback)(int marker));
   /// Sets the BC values callback function, which takes absolute boundary coordinates.
   void set_essential_bc_values(scalar (*bc_value_callback_by_coord)(int ess_bdy_marker, double x, double y));
   /// Sets the BC values callback function, which takes parametric edge position.
   void set_essential_bc_values(scalar (*bc_value_callback_by_edge)(EdgePos* ep)); // for EdgePos, see mesh.h
 
-  /// Sets element polynomial order.
+  /// Sets element polynomial order. Can be called by the user. Should not be called  
+  /// for many elements at once, since assign_dofs() is called at the end of this function.
   virtual void set_element_order(int id, int order);
+  /// Sets polynomial order to all elements.
+  virtual void set_element_orders(int* elem_orders);
+  /// Sets element polynomial order. This version does not call assign_dofs() and is 
+  /// intended primarily for internal use.
+  virtual void set_element_order_internal(int id, int order);
   /// Returns element polynomial order.
-  int  get_element_order(int id) const;
-  /// Sets the same polynomial order for all elements in the mesh.
+  int get_element_order(int id) const;
+  /// Sets the same polynomial order for all elements in the mesh. Intended for 
+  /// the user and thus assign_dofs() is called at the end of this function.
   void set_uniform_order(int order, int marker = H2D_ANY);
+  /// Sets the same polynomial order for all elements in the mesh. Does not 
+  /// call assign_dofs(). For internal use.
+  void set_uniform_order_internal(int order, int marker = H2D_ANY);
   /// Sets the order automatically assigned to all newly created elements.
   /// (The order of these is normally undefined and has to be set explicitly.)
   void set_default_order(int tri_order, int quad_order = 0);
@@ -140,7 +155,7 @@ public:
   virtual int assign_dofs(int first_dof = 0, int stride = 1);
 
   /// \brief Returns the number of basis functions contained in the space.
-  int get_num_dofs() const { return (next_dof - first_dof) / stride; }
+  int get_num_dofs() { return ndof; }
   /// \brief Returns the DOF number of the last basis function.
   int get_max_dof() const { return next_dof - stride; }
 
@@ -148,7 +163,7 @@ public:
   Mesh* get_mesh() const { return mesh; }
   void set_mesh(Mesh* mesh);
 
-  /// Creates a copy of the space. For internal use (see RefSystem).
+  /// Creates a copy of the space. For internal use (see RefDiscreteProblem).
   virtual Space* dup(Mesh* mesh) const = 0;
 
   /// Returns true if the space is ready for computation, false otherwise.
@@ -159,17 +174,26 @@ public:
 
 public:
 
+  /// FE mesh
+  Mesh* mesh;
+
+  /// Number of degrees of freedom (dimension of the space)
+  int ndof;
+
   /// Obtains an assembly list for the given element.
-  void get_element_assembly_list(Element* e, AsmList* al);
+  virtual void get_element_assembly_list(Element* e, AsmList* al);
 
   /// Obtains an edge assembly list (contains shape functions that are nonzero on the specified edge).
   void get_edge_assembly_list(Element* e, int edge, AsmList* al);
+
+  /// Updates essential BC values. Typically used for time-dependent 
+  /// essnetial boundary conditions.
+  void update_essential_bc_values();
 
 protected:
   static const int H2D_UNASSIGNED_DOF = -2; ///< DOF which was not assigned yet.
   static const int H2D_CONSTRAINED_DOF = -1; ///< DOF which is constrained.
 
-  Mesh* mesh;
   Shapeset* shapeset;
 
   int default_tri_order, default_quad_order;
@@ -251,7 +275,6 @@ protected: //debugging support
   void precalculate_projection_matrix(int nv, double**& mat, double*& p);
   virtual scalar* get_bc_projection(EdgePos* ep, int order) = 0;
   void update_edge_bc(Element* e, EdgePos* ep);
-  void update_bc_dofs();
 
   /// Called by Space to update constraining relationships between shape functions due
   /// to hanging nodes in the mesh. As this is space-specific, this function is reimplemented
@@ -274,15 +297,20 @@ public:
   scalar (*bc_value_callback_by_coord)(int ess_bdy_marker, double x, double y);
   scalar (*bc_value_callback_by_edge)(EdgePos* ep);
 
-  /// Internal. Used by LinSystem to detect changes in the space.
+  /// Internal. Used by DiscreteProblem to detect changes in the space.
   int get_seq() const { return seq; }
+  int set_seq(int seq_) { seq = seq_; return seq;}
 
   /// Internal. Return type of this space (H1 = 0, Hcurl = 1, Hdiv = 2, L2 = 3)
   virtual int get_type() const = 0;
 };
 
 // new way of enumerating degrees of freedom
-extern H2D_API int assign_dofs(int n, ...);  // assigns dofs in multiple spaces
-extern H2D_API int assign_dofs(Space *s);    // assigns dofs to one space
+extern H2D_API int assign_dofs(Tuple<Space*> spaces);  // multiple spaces
+extern H2D_API int assign_dofs(Space* s);    // one space
+
+// updating time-dependent essential (Dirichlet) boundary conditions
+extern H2D_API void update_essential_bc_values(Tuple<Space*> spaces);  // multiple spaces
+extern H2D_API void update_essential_bc_values(Space *s);    // one space
 
 #endif

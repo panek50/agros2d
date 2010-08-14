@@ -37,6 +37,32 @@ MeshView::MeshView(const char* title, int x, int y, int width, int height)
   b_markers = true;
 }
 
+#ifndef _MSC_VER
+MeshView::MeshView(const char* title, WinGeom* wg)
+        : View(title, wg)
+{
+  nodes = elems = NULL;
+  b_scale = false;
+  b_ids = false;
+  b_markers = true;
+}
+#endif
+
+MeshView::MeshView(char* title, WinGeom* wg)
+        : View(title, wg)
+{
+  nodes = elems = NULL;
+  b_scale = false;
+  b_ids = false;
+  b_markers = true;
+  b_elem_mrk = false;
+}
+
+
+
+
+
+
 
 void MeshView::show(Mesh* mesh)
 {
@@ -154,6 +180,19 @@ void MeshView::on_display()
       draw_text(transform_x(elems[i].x), transform_y(elems[i].y), text, 0);
     }
   }
+  
+  // draw element markers
+  if (b_elem_mrk)
+  {
+    glColor3f(0, 0, 0);
+    for (i = 0; i < ne; i++)
+    {
+      if (elems[i].id < 0) continue;
+      char text[20];
+      sprintf(text, "%d", elems[i].type);
+      draw_text(transform_x(elems[i].x), transform_y(elems[i].y), text, 0);
+    }
+  }
 
   delete [] tvert;
   lin.unlock_data();
@@ -174,11 +213,16 @@ void MeshView::on_key_down(unsigned char key, int x, int y)
       refresh();
       break;
 
-    case 'm':
+    case 'i':
       b_ids = !b_ids;
       refresh();
       break;
-
+      
+    case 'm':
+      b_elem_mrk = !b_elem_mrk;
+      refresh();
+      break;
+      
     default:
       View::on_key_down(key, x, y);
       break;
@@ -233,7 +277,8 @@ const char* MeshView::get_help_text() const
   "  C - center image\n"
   "  H - render high-quality frame\n"
   "  B - toggle boundary markers\n"
-  "  M - toggle element IDs\n"
+  "  I - toggle element IDs\n"
+  "  M - toggle element markers\n"
   "  S - save screenshot\n"
   "  F1 - this help\n"
   "  Esc, Q - quit";

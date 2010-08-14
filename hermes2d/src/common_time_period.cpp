@@ -1,5 +1,11 @@
-#include <time.h>
-#include "common.h"
+#include <math.h> 
+#include <time.h> 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <sstream>
+#include <fstream>
+
 #include "common_time_period.h"
 
 using namespace std;
@@ -58,7 +64,7 @@ double TimePeriod::period_in_seconds(const SysTime& begin, const SysTime& end) c
 
 const TimePeriod& TimePeriod::tick(TimerPeriodTickType type) {
   SysTime cur_time = get_time();
-  if (type == H2D_ACCUMULATE) {
+  if (type == HERMES_ACCUMULATE) {
     double secs = period_in_seconds(last_time, cur_time);
     accum += secs;
     last_period = secs;
@@ -71,7 +77,7 @@ const TimePeriod& TimePeriod::tick(TimerPeriodTickType type) {
 }
 
 const TimePeriod& TimePeriod::tick_reset() {
-  tick(H2D_SKIP);
+  tick(HERMES_SKIP);
   reset();
   return *this;
 }
@@ -101,7 +107,7 @@ string TimePeriod::to_string(double secs) const {
   }
 }
 
-H2D_API ostream& operator<<(ostream& stream, const TimePeriod& period) {
+ostream& operator<<(ostream& stream, const TimePeriod& period) {
   stream << period.accumulated_str();
   return stream;
 }

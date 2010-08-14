@@ -19,7 +19,7 @@
 #include "shapeset_h1_all.h"
 
 
-H1ShapesetBeuchler ref_map_shapeset;
+H1ShapesetJacobi ref_map_shapeset;
 PrecalcShapeset ref_map_pss(&ref_map_shapeset);
 
 
@@ -32,6 +32,7 @@ RefMap::RefMap()
   overflow = NULL;
   set_quad_2d(&g_quad_2d_std); // default quadrature
 }
+
 
 
 void RefMap::set_quad_2d(Quad2D* quad_2d)
@@ -152,6 +153,8 @@ void RefMap::calc_inv_ref_map(int order)
   {
     jac[i] = (m[i][0][0] * m[i][1][1] - m[i][0][1] * m[i][1][0]);
     double ij = 1.0 / jac[i];
+    error_if(!finite(ij), "1/jac[%d] is inifinity when calculating inv. ref. map for order %d (jac=%g)", i, order);
+    assert_msg(ij == ij, "1/jac[%d] is NaN when calculating inv. ref. map for order %d (jac=%g)", i, order);
 
     // invert and transpose the matrix
     irm[i][0][0] =  m[i][1][1] * ij;

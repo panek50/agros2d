@@ -21,7 +21,6 @@
 #include "common.h"
 
 #include "range.h"
-#include "tuple.h"
 #include "limit_order.h"
 
 #include "mesh.h"
@@ -45,11 +44,9 @@
 #include "trans.h"
 
 #include "weakform.h"
-#include "linsystem.h"
+#include "discrete_problem.h"
 #include "feproblem.h"
-#include "nonlinsystem.h"
-#include "refsystem.h"
-#include "refsystem2.h"
+#include "linear_problem.h"
 #include "forms.h"
 
 #include "itersolver.h"
@@ -92,12 +89,6 @@
 #include "ref_selectors/hcurl_proj_based_selector.h"
 
 #include "adapt.h"
-#include "l2_adapt.h"
-#include "h1_adapt.h"
-#include "hcurl_adapt.h"
-
-void hermes2d_initialize(int* argc = NULL, char* argv[] = NULL);
-void hermes2d_finalize(bool force_quit = false);
 
 /**
 
@@ -175,7 +166,7 @@ Shapeset is a base class for all shapesets, both scalar (H1) and vector-valued (
 the interface (basically it is just a bunch of tables) and the functionality for constrained shape
 functions.
 
-The actual shapesets are H1ShapesetOrtho, H1ShapesetBeuchler, HcurlShapesetLegendre and
+The actual shapesets are H1ShapesetOrtho, H1ShapesetJacobi, HcurlShapesetLegendre and
 HcurlShapesetGradLeg. The other ("eigen") shapesets are experimental and not recommended for normal
 use.
 
@@ -285,6 +276,8 @@ Relevant files: view.h
 
 
 */
+
+
 
 
 #endif

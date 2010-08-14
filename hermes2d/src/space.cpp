@@ -18,30 +18,31 @@
 #include "matrix_old.h"
 #include "auto_local_array.h"
 
-Space::Space(Mesh* mesh, Shapeset* shapeset)
+Space::Space(Mesh* mesh, Shapeset* shapeset, BCType (*bc_type_callback)(int), 
+             scalar (*bc_value_callback_by_coord)(int, double, double), int p_init)
      : mesh(mesh), shapeset(shapeset)
 {
-  default_tri_order = -1;
-  default_quad_order = -1;
-  ndata = NULL;
-  edata = NULL;
-  nsize = esize = 0;
-  ndata_allocated = 0;
-  mesh_seq = -1;
-  seq = 0;
-  was_assigned = false;
+  if (mesh == NULL) error("Space must be initialized with an existing mesh.");
+  this->default_tri_order = -1;
+  this->default_quad_order = -1;
+  this->ndata = NULL;
+  this->edata = NULL;
+  this->nsize = esize = 0;
+  this->ndata_allocated = 0;
+  this->mesh_seq = -1;
+  this->seq = 0;
+  this->was_assigned = false;
+  this->ndof = 0;
 
-  set_bc_types(NULL);
-  set_essential_bc_values((scalar (*)(int, double, double)) NULL);
-  set_essential_bc_values((scalar (*)(EdgePos*)) NULL);
+  this->set_bc_types_init(bc_type_callback);
+  this->set_essential_bc_values(bc_value_callback_by_coord);
+  this->set_essential_bc_values((scalar (*)(EdgePos*)) NULL);
 }
-
 
 Space::~Space()
 {
   free();
 }
-
 
 void Space::free()
 {
@@ -92,8 +93,18 @@ void Space::H2D_CHECK_ORDER(int order)
     error("Order = %d, maximum is 10.", order);
 }
 
-
+// if the user calls this, then the enumeration of dof 
+// is updated
 void Space::set_element_order(int id, int order)
+{
+  set_element_order_internal(id, order);
+
+  // since space changed, enumerate basis functions
+  this->assign_dofs();
+}
+
+// just sets the element order without enumerating dof
+void Space::set_element_order_internal(int id, int order)
 {
   assert_msg(mesh->get_element(id)->is_triangle() || H2D_GET_V_ORDER(order) != 0, "Element #%d is quad but given vertical order is zero", id);
   assert_msg(mesh->get_element(id)->is_quad() || H2D_GET_V_ORDER(order) == 0, "Element #%d is triangle but vertical is not zero", id);
@@ -118,6 +129,14 @@ int Space::get_element_order(int id) const
 
 void Space::set_uniform_order(int order, int marker)
 {
+  set_uniform_order_internal(order, marker);
+
+  // since space changed, enumerate basis functions
+  this->assign_dofs();
+}
+  
+void Space::set_uniform_order_internal(int order, int marker)
+{
   resize_tables();
   H2D_CHECK_ORDER(order);
   int quad_order = H2D_MAKE_QUAD_ORDER(order, order);
@@ -137,6 +156,23 @@ void Space::set_uniform_order(int order, int marker)
   seq++;
 }
 
+void Space::set_element_orders(int* elem_orders_)
+{
+  resize_tables();
+  
+  Element* e;
+  int counter = 0;
+  for_all_elements(e, mesh)
+  {
+    H2D_CHECK_ORDER(elem_orders_[counter]);
+    ElementData* ed = &edata[e->id];
+    if (e->is_triangle())
+      ed->order = elem_orders_[counter];
+    else
+      ed->order = H2D_MAKE_QUAD_ORDER(elem_orders_[counter], elem_orders_[counter]);
+    counter++;
+  }
+}
 
 void Space::set_default_order(int tri_order, int quad_order)
 {
@@ -175,6 +211,9 @@ void Space::copy_orders(Space* space, int inc)
     copy_orders_recurrent(mesh->get_element/*sic!*/(e->id), oo);
   }
   seq++;
+
+  // since space changed, enumerate basis functions
+  this->assign_dofs();
 }
 
 
@@ -225,13 +264,16 @@ void Space::set_mesh(Mesh* mesh)
   free();
   this->mesh = mesh;
   seq++;
+
+  // since space changed, enumerate basis functions
+  this->assign_dofs();
 }
 
 
 void Space::propagate_zero_orders(Element* e)
 {
   warn_if(get_element_order(e->id) != 0, "zeroing order of an element ID:%d, original order (H:%d; V:%d)", e->id, H2D_GET_H_ORDER(get_element_order(e->id)), H2D_GET_V_ORDER(get_element_order(e->id)));
-  set_element_order(e->id, 0);
+  set_element_order_internal(e->id, 0);
   if (!e->active)
     for (int i = 0; i < 4; i++)
       if (e->sons[i] != NULL)
@@ -252,7 +294,7 @@ void Space::distribute_orders(Mesh* mesh, int* parents)
     orders[e->id] = p;
   }
   for_all_active_elements(e, mesh)
-    set_element_order(e->id, orders[e->id]);
+    set_element_order_internal(e->id, orders[e->id]);
 
 }
 
@@ -262,7 +304,6 @@ void Space::distribute_orders(Mesh* mesh, int* parents)
 int Space::assign_dofs(int first_dof, int stride)
 {
   //warn("Deprecated function used. Please update your code to use assign_dofs(Space *s) or assign_dofs(int n, Space *s1, Space *s2, ..., Space *sn).");
-
 
   if (first_dof < 0) error("Invalid first_dof.");
   if (stride < 1)    error("Invalid stride.");
@@ -278,9 +319,14 @@ int Space::assign_dofs(int first_dof, int stride)
   //    propagate_zero_orders(e);
 
   //check validity of orders
-  for_all_active_elements(e, mesh)
-    if (e->id >= esize || edata[e->id].order < 0)
-      error("Uninitialized element order (id = #%d).", e->id);
+  for_all_active_elements(e, mesh) {
+    if (e->id >= esize || edata[e->id].order < 0) {
+      printf("e->id = %d\n", e->id);
+      printf("esize = %d\n", esize);
+      printf("edata[%d].order = %d\n", e->id, edata[e->id].order);
+      error("Uninitialized element order.");
+    }
+  }
 
   this->first_dof = next_dof = first_dof;
   this->stride = stride;
@@ -291,14 +337,14 @@ int Space::assign_dofs(int first_dof, int stride)
   assign_bubble_dofs();
 
   free_extra_data();
-  update_bc_dofs();
+  update_essential_bc_values();
   update_constraints();
   post_assign();
 
   mesh_seq = mesh->get_seq();
   was_assigned = true;
-  seq++;
-  return get_num_dofs();
+  this->ndof = (next_dof - first_dof) / stride;
+  return this->ndof;
 }
 
 void Space::reset_dof_assignment() {
@@ -407,7 +453,19 @@ void Space::set_bc_types(BCType (*bc_type_callback)(int))
   if (bc_type_callback == NULL) bc_type_callback = default_bc_type;
   this->bc_type_callback = bc_type_callback;
   seq++;
+
+  // since space changed, enumerate basis functions
+  this->assign_dofs();
 }
+
+void Space::set_bc_types_init(BCType (*bc_type_callback)(int))
+{
+  if (bc_type_callback == NULL) bc_type_callback = default_bc_type;
+  this->bc_type_callback = bc_type_callback;
+  seq++;
+}
+
+
 
 void Space::set_essential_bc_values(scalar (*bc_value_callback_by_coord)(int, double, double))
 {
@@ -501,7 +559,7 @@ void Space::update_edge_bc(Element* e, EdgePos* ep)
 }
 
 
-void Space::update_bc_dofs()
+void Space::update_essential_bc_values()
 {
   Element* e;
   for_all_base_elements(e, mesh)
@@ -552,16 +610,9 @@ void Space::free_extra_data()
 }*/
 
 // new way of enumerating degrees of freedom
-H2D_API int assign_dofs(int n, ...) {
-  // reading variable argument list
-  std::vector<Space*> spaces(n);
-  va_list ap;
-  va_start(ap, n);
-  for (int i = 0; i < n; i++) {
-    spaces[i] = va_arg(ap, Space*);
-  }
-  va_end(ap);
-
+H2D_API int assign_dofs(Tuple<Space*> spaces) 
+{
+  int n = spaces.size();
   // assigning dofs to each space
   int ndof = 0;  
   for (int i = 0; i < n; i++) {
@@ -572,6 +623,18 @@ H2D_API int assign_dofs(int n, ...) {
 }
 
 H2D_API int assign_dofs(Space *s) {
-  return assign_dofs(1, s);
+  return assign_dofs(Tuple<Space*>(s));
+}
+
+// updating time-dependent essential BC
+H2D_API void update_essential_bc_values(Tuple<Space*> spaces) {
+  int n = spaces.size();
+  for (int i = 0; i < n; i++) {
+    spaces[i]->update_essential_bc_values();
+  }
+}
+
+H2D_API void update_essential_bc_values(Space *s) {
+  return update_essential_bc_values(Tuple<Space*>(s));
 }
 

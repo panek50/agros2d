@@ -176,18 +176,22 @@ template<typename T>
 class Geom
 {
 public:
-  int marker;                            // marker
+  int marker;       // marker
   int id;
-  //Element *element;                      // active element. NOTE: We used this for some time but 
-                                         // decided against it because (a) it disables automatic order 
-                                         // parsing and (b) if the form is called with T == Ord, 
-                                         // element is not initialized, so the user has to be aware
-                                         // of this and test it in his weak form.  
+  T diam;           // element diameter
+  //Element *element;   // active element. NOTE: We used this for some time but
+                        // decided against it because (a) it disables automatic
+                        // order parsing and (b) if the form is called with T
+                        // == Ord, element is not initialized, so the user has
+                        // to be aware of this and test it in his weak form.
 
-  T *x, *y;				 // coordinates [in physical domain]
-  T *nx, *ny;				 // normals [in physical domain]
-  T *tx, *ty;				 // tangents [in physical domain]
-  T diam;                                // element diameter
+  T *x, *y;         // coordinates [in physical domain]
+  T *nx, *ny;       // normals [in physical domain] (locally oriented
+                    // to point outside the element)
+  T *tx, *ty;       // tangents [in physical domain]
+  int orientation;  // 0 .... if (nx, ny) is equal to the global normal,
+                    // otherwise 1 (each mesh edge has a unique global normal
+                    // vector)
 
   Geom()
   {

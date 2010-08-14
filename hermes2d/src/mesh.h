@@ -130,6 +130,11 @@ struct H2D_API Element
   /// length of the longer diagonal for quads. Ignores element curvature.
   double get_diameter() const;
 
+  // returns the edge orientation. This works for the unconstrained edges.
+  int get_edge_orientation(int ie) {
+      return (this->vn[ie]->id < this->vn[this->next_vert(ie)]->id) ? 0 : 1;
+  }
+
   void ref_all_nodes();
   void unref_all_nodes(HashTable* ht);
 };
@@ -256,10 +261,14 @@ public:
   /// For internal use.
   Element* get_element_fast(int id) const { return &(elements[id]);}
   /// Refines all triangle elements to quads.
-  /// It can refine a triangle element into three quadrilateral,
+  /// It can refine a triangle element into three quadrilaterals.
+  /// Note: this function creates a base mesh -- it can only be 
+  /// used before any other mesh refinement function is called.
   void convert_triangles_to_quads();
   /// Refines all quad elements to triangles.
-  /// It can refine a quadrilateral element into two triangles.
+  /// It refines a quadrilateral element into two triangles.
+  /// Note: this function creates a base mesh -- it can only be 
+  /// used before any other mesh refinement function is called.
   void convert_quads_to_triangles();
 
 protected:

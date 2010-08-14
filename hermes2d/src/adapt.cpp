@@ -16,7 +16,7 @@
 #include "common.h"
 #include "limit_order.h"
 #include "solution.h"
-#include "linsystem.h"
+#include "discrete_problem.h"
 #include "refmap.h"
 #include "quad_all.h"
 #include "matrix.h"
@@ -29,15 +29,23 @@
 using namespace std;
 
 /* Private constants */
-#define H2D_TOTAL_ERROR_MASK 0x0F ///< A mask which mask-out total error type. Used by Adapt::calc_error() internally. \internal
-#define H2D_ELEMENT_ERROR_MASK 0xF0 ///< A mask which mask-out element error type. Used by Adapt::calc_error() internally. \internal
+#define H2D_TOTAL_ERROR_MASK 0x0F ///< A mask which mask-out total error type. Used by Adapt::calc_elem_errors() internally. \internal
+#define H2D_ELEMENT_ERROR_MASK 0xF0 ///< A mask which mask-out element error type. Used by Adapt::calc_elem_errors() internally. \internal
 
-Adapt::Adapt(const Tuple<Space*>& spaces)
-  : num_comps(spaces.size()), num_act_elems(-1)
-  , have_solutions(false), have_errors(false) {
-  // check validity
-  error_if(num_comps <= 0, "Too few components (%d), only %d supported.", num_comps, H2D_MAX_COMPONENTS);
-  error_if(num_comps >= H2D_MAX_COMPONENTS, "Too many components (%d), only %d supported.", num_comps, H2D_MAX_COMPONENTS);
+Adapt::Adapt(Tuple<Space *> spaces_, Tuple<int> proj_norms) : num_act_elems(-1), have_solutions(false), have_errors(false) 
+{
+  // sanity check
+  if (spaces_.size() != proj_norms.size()) error("Mismatched numbers of spaces and projection types in Adapt::Adapt().");
+
+  this->neq = spaces_.size();
+
+  // sanity checks
+  error_if(this->neq <= 0, "Too few components (%d), only %d supported.", this->neq, H2D_MAX_COMPONENTS);
+  error_if(this->neq >= H2D_MAX_COMPONENTS, "Too many components (%d), only %d supported.", this->neq, H2D_MAX_COMPONENTS);
+  for (int i = 0; i < this->neq; i++) {
+    if (spaces_[i] == NULL) error("spaces[%d] is NULL in Adapt::Adapt().", i);
+    this->spaces.push_back(spaces_[i]); 
+  }
 
   // reset values
   memset(errors_squared, 0, sizeof(errors_squared));
@@ -45,32 +53,39 @@ Adapt::Adapt(const Tuple<Space*>& spaces)
   memset(ord, 0, sizeof(ord));
   memset(sln, 0, sizeof(sln));
   memset(rsln, 0, sizeof(rsln));
-  memset(this->spaces, 0, sizeof(this->spaces));
 
-  //initialize spaces
-  for(int i = 0; i < num_comps; i++)
-    this->spaces[i] = spaces[i];
+  for (int i = 0; i < this->neq; i++) {
+    switch (proj_norms[i]) {
+      case H2D_L2_NORM: form[i][i] = l2_form<double, scalar>; ord[i][i]  = l2_form<Ord, Ord>; break;
+      case H2D_H1_NORM: form[i][i] = h1_form<double, scalar>; ord[i][i]  = h1_form<Ord, Ord>; break;
+      case H2D_HCURL_NORM: form[i][i] = hcurl_form<double, scalar>; ord[i][i]  = hcurl_form<Ord, Ord>; break;
+      case H2D_HDIV_NORM: form[i][i] = hdiv_form<double, scalar>; ord[i][i]  = hdiv_form<Ord, Ord>; break;
+      default: error("Unknown projection type in Adapt::Adapt().");
+    }
+  }
 }
 
 Adapt::~Adapt()
 {
-  for (int i = 0; i < num_comps; i++)
+  for (int i = 0; i < this->neq; i++)
     delete [] errors_squared[i];
 }
 
 //// adapt /////////////////////////////////////////////////////////////////////////////////////////
 
-bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr, int strat, int regularize, bool same_orders, double to_be_processed)
+bool Adapt::adapt(Tuple<RefinementSelectors::Selector *> refinement_selectors, double thr, int strat, 
+            int regularize, double to_be_processed)
 {
-  error_if(!have_errors, "element errors have to be calculated first, call calc_error().");
-  error_if(refinement_selector == NULL, "selector not provided");
+  error_if(!have_errors, "element errors have to be calculated first, call calc_elem_errors().");
+  error_if(refinement_selectors == Tuple<RefinementSelectors::Selector *>(), "selector not provided");
+  if (spaces.size() != refinement_selectors.size()) error("Wrong number of refinement selectors.");
   TimePeriod cpu_time;
 
   //get meshes
   int max_id = -1;
   Mesh* meshes[H2D_MAX_COMPONENTS];
-  for (int j = 0; j < num_comps; j++) {
-    meshes[j] = spaces[j]->get_mesh();
+  for (int j = 0; j < this->neq; j++) {
+    meshes[j] = this->spaces[j]->get_mesh();
     rsln[j]->set_quad_2d(&g_quad_2d_std);
     rsln[j]->enable_transform(false);
     if (meshes[j]->get_max_element_id() > max_id)
@@ -78,9 +93,9 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
   }
 
   //reset element refinement info
-  AUTOLA2_OR(int, idx, max_id + 1, num_comps + 1);
+  AUTOLA2_OR(int, idx, max_id + 1, this->neq + 1);
   for(int j = 0; j < max_id; j++)
-    for(int l = 0; l < num_comps; l++)
+    for(int l = 0; l < this->neq; l++)
       idx[j][l] = -1; // element not refined
 
   double err0_squared = 1000.0;
@@ -135,7 +150,8 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
         // first refinement strategy:
         // refine elements until prescribed amount of error is processed
         // if more elements have similar error refine all to keep the mesh symmetric
-        if ((strat == 0) && (processed_error_squared > sqrt(thr) * errors_squared_sum) && fabs((err_squared - err0_squared)/err0_squared) > 1e-3) break;
+        if ((strat == 0) && (processed_error_squared > sqrt(thr) * errors_squared_sum) 
+                         && fabs((err_squared - err0_squared)/err0_squared) > 1e-3) break;
 
         // second refinement strategy:
         // refine all elements whose error is bigger than some portion of maximal error
@@ -150,8 +166,8 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
 
       // get refinement suggestion
       ElementToRefine elem_ref(id, comp);
-      int current = spaces[comp]->get_element_order(id);
-      bool refined = refinement_selector->select_refinement(e, current, rsln[comp], elem_ref);
+      int current = this->spaces[comp]->get_element_order(id);
+      bool refined = refinement_selectors[comp]->select_refinement(e, current, rsln[comp], elem_ref);
 
       //add to a list of elements that are going to be refined
       if (can_refine_element(mesh, e, refined, elem_ref) ) {
@@ -185,14 +201,13 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
   }
 
   //fix refinement if multimesh is used
-  fix_shared_mesh_refinements(meshes, elem_inx_to_proc, idx, refinement_selector);
+  fix_shared_mesh_refinements(meshes, elem_inx_to_proc, idx, refinement_selectors);
 
   //apply refinements
   apply_refinements(elem_inx_to_proc);
 
-  //homogenize orders in a case of a multimesh
-  if (same_orders)
-    homogenize_shared_mesh_orders(meshes);
+  // in singlemesh case, impose same orders across meshes
+  homogenize_shared_mesh_orders(meshes);
 
   // mesh regularization
   if (regularize >= 0)
@@ -202,16 +217,16 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
       regularize = 1;
       warn("Total mesh regularization is not supported in adaptivity. 1-irregular mesh is used instead.");
     }
-    for (int i = 0; i < num_comps; i++)
+    for (int i = 0; i < this->neq; i++)
     {
       int* parents;
       parents = meshes[i]->regularize(regularize);
-      spaces[i]->distribute_orders(meshes[i], parents);
+      this->spaces[i]->distribute_orders(meshes[i], parents);
       delete [] parents;
     }
   }
 
-  for (int j = 0; j < num_comps; j++)
+  for (int j = 0; j < this->neq; j++)
     rsln[j]->enable_transform(true);
 
   verbose("Refined elements: %d", elem_inx_to_proc.size());
@@ -224,19 +239,23 @@ bool Adapt::adapt(RefinementSelectors::Selector* refinement_selector, double thr
   if (strat == 2 && done == true)
     have_errors = true; // space without changes
 
+  // since space changed, assign dofs:
+  assign_dofs(this->spaces);
+
   return done;
 }
 
-void Adapt::fix_shared_mesh_refinements(Mesh** meshes, std::vector<ElementToRefine>& elems_to_refine, AutoLocalArray2<int>& idx, RefinementSelectors::Selector* refinement_selector) {
+void Adapt::fix_shared_mesh_refinements(Mesh** meshes, std::vector<ElementToRefine>& elems_to_refine, 
+                                        AutoLocalArray2<int>& idx, Tuple<RefinementSelectors::Selector *> refinement_selectors) {
   int num_elem_to_proc = elems_to_refine.size();
   for(int inx = 0; inx < num_elem_to_proc; inx++) {
     ElementToRefine& elem_ref = elems_to_refine[inx];
-    int current_quad_order = spaces[elem_ref.comp]->get_element_order(elem_ref.id);
+    int current_quad_order = this->spaces[elem_ref.comp]->get_element_order(elem_ref.id);
     Element* current_elem = meshes[elem_ref.comp]->get_element(elem_ref.id);
 
     //select a refinement used by all components that share a mesh which is about to be refined
     int selected_refinement = elem_ref.split;
-    for (int j = 0; j < num_comps; j++)
+    for (int j = 0; j < this->neq; j++)
     {
       if (selected_refinement == H2D_REFINEMENT_H) break; // iso refinement is max what can be recieved
       if (j != elem_ref.comp && meshes[j] == meshes[elem_ref.comp]) { // if a mesh is shared
@@ -262,12 +281,12 @@ void Adapt::fix_shared_mesh_refinements(Mesh** meshes, std::vector<ElementToRefi
         suggested_orders = elem_ref.q;
 
       //update orders
-      for (int j = 0; j < num_comps; j++) {
+      for (int j = 0; j < this->neq; j++) {
         if (j != elem_ref.comp && meshes[j] == meshes[elem_ref.comp]) { // if components share the mesh
           // change currently processed refinement
           if (elem_ref.split != selected_refinement) {
             elem_ref.split = selected_refinement;
-            refinement_selector->generate_shared_mesh_orders(current_elem, current_quad_order, elem_ref.split, elem_ref.p, suggested_orders);
+            refinement_selectors[j]->generate_shared_mesh_orders(current_elem, current_quad_order, elem_ref.split, elem_ref.p, suggested_orders);
           }
 
           // change other refinements
@@ -276,13 +295,13 @@ void Adapt::fix_shared_mesh_refinements(Mesh** meshes, std::vector<ElementToRefi
             ElementToRefine& elem_ref_ii = elems_to_refine[ii];
             if (elem_ref_ii.split != selected_refinement) {
               elem_ref_ii.split = selected_refinement;
-              refinement_selector->generate_shared_mesh_orders(current_elem, current_quad_order, elem_ref_ii.split, elem_ref_ii.p, suggested_orders);
+              refinement_selectors[j]->generate_shared_mesh_orders(current_elem, current_quad_order, elem_ref_ii.split, elem_ref_ii.p, suggested_orders);
             }
           }
           else { // element (of the other comp.) not refined at all: assign refinement
             ElementToRefine elem_ref_new(elem_ref.id, j);
             elem_ref_new.split = selected_refinement;
-            refinement_selector->generate_shared_mesh_orders(current_elem, current_quad_order, elem_ref_new.split, elem_ref_new.p, suggested_orders);
+            refinement_selectors[j]->generate_shared_mesh_orders(current_elem, current_quad_order, elem_ref_new.split, elem_ref_new.p, suggested_orders);
             elems_to_refine.push_back(elem_ref_new);
           }
         }
@@ -293,20 +312,20 @@ void Adapt::fix_shared_mesh_refinements(Mesh** meshes, std::vector<ElementToRefi
 
 void Adapt::homogenize_shared_mesh_orders(Mesh** meshes) {
   Element* e;
-  for (int i = 0; i < num_comps; i++) {
+  for (int i = 0; i < this->neq; i++) {
     for_all_active_elements(e, meshes[i]) {
-      int current_quad_order = spaces[i]->get_element_order(e->id);
+      int current_quad_order = this->spaces[i]->get_element_order(e->id);
       int current_order_h = H2D_GET_H_ORDER(current_quad_order), current_order_v = H2D_GET_V_ORDER(current_quad_order);
 
-      for (int j = 0; j < num_comps; j++)
+      for (int j = 0; j < this->neq; j++)
         if ((j != i) && (meshes[j] == meshes[i])) // components share the mesh
         {
-          int quad_order = spaces[j]->get_element_order(e->id);
+          int quad_order = this->spaces[j]->get_element_order(e->id);
           current_order_h = std::max(current_order_h, H2D_GET_H_ORDER(quad_order));
           current_order_v = std::max(current_order_v, H2D_GET_V_ORDER(quad_order));
         }
 
-      spaces[i]->set_element_order(e->id, H2D_MAKE_QUAD_ORDER(current_order_h, current_order_v));
+      this->spaces[i]->set_element_order_internal(e->id, H2D_MAKE_QUAD_ORDER(current_order_h, current_order_v));
     }
   }
 }
@@ -317,30 +336,32 @@ const std::vector<ElementToRefine>& Adapt::get_last_refinements() const {
 
 void Adapt::apply_refinements(std::vector<ElementToRefine>& elems_to_refine)
 {
-  for (vector<ElementToRefine>::const_iterator elem_ref = elems_to_refine.begin(); elem_ref != elems_to_refine.end(); elem_ref++) // go over elements to be refined
+  for (vector<ElementToRefine>::const_iterator elem_ref = elems_to_refine.begin(); 
+       elem_ref != elems_to_refine.end(); elem_ref++) { // go over elements to be refined
     apply_refinement(*elem_ref);
+  }
 }
 
 void Adapt::apply_refinement(const ElementToRefine& elem_ref) {
-  Space* space = spaces[elem_ref.comp];
+  Space* space = this->spaces[elem_ref.comp];
   Mesh* mesh = space->get_mesh();
 
   Element* e;
   e = mesh->get_element(elem_ref.id);
 
   if (elem_ref.split == H2D_REFINEMENT_P)
-    space->set_element_order(elem_ref.id, elem_ref.p[0]);
+    space->set_element_order_internal(elem_ref.id, elem_ref.p[0]);
   else if (elem_ref.split == H2D_REFINEMENT_H) {
     if (e->active)
       mesh->refine_element(elem_ref.id);
     for (int j = 0; j < 4; j++)
-      space->set_element_order(e->sons[j]->id, elem_ref.p[j]);
+      space->set_element_order_internal(e->sons[j]->id, elem_ref.p[j]);
   }
   else {
     if (e->active)
       mesh->refine_element(elem_ref.id, elem_ref.split);
     for (int j = 0; j < 2; j++)
-      space->set_element_order(e->sons[ (elem_ref.split == 1) ? j : j+2 ]->id, elem_ref.p[j]);
+      space->set_element_order_internal(e->sons[ (elem_ref.split == 1) ? j : j+2 ]->id, elem_ref.p[j]);
   }
 }
 
@@ -349,11 +370,12 @@ void Adapt::apply_refinement(const ElementToRefine& elem_ref) {
 void Adapt::unrefine(double thr)
 {
   if (!have_errors)
-    error("Element errors have to be calculated first, see calc_error().");
+    error("Element errors have to be calculated first, see calc_elem_errors().");
+  if (this->neq > 2) error("Unrefine implemented for two spaces only.");
 
   Mesh* mesh[2];
-  mesh[0] = spaces[0]->get_mesh();
-  mesh[1] = spaces[1]->get_mesh();
+  mesh[0] = this->spaces[0]->get_mesh();
+  mesh[1] = this->spaces[1]->get_mesh();
 
 
   int k = 0;
@@ -376,9 +398,9 @@ void Adapt::unrefine(double thr)
         {
           sum1_squared += errors_squared[0][e->sons[i]->id];
           sum2_squared += errors_squared[1][e->sons[i]->id];
-          int oo = spaces[0]->get_element_order(e->sons[i]->id);
+          int oo = this->spaces[0]->get_element_order(e->sons[i]->id);
           if (oo > max1) max1 = oo;
-          oo = spaces[1]->get_element_order(e->sons[i]->id);
+          oo = this->spaces[1]->get_element_order(e->sons[i]->id);
           if (oo > max2) max2 = oo;
         }
         if ((sum1_squared < thr * errors_squared[regular_queue[0].comp][regular_queue[0].id]) &&
@@ -388,8 +410,8 @@ void Adapt::unrefine(double thr)
           mesh[1]->unrefine_element(e->id);
           errors_squared[0][e->id] = sum1_squared;
           errors_squared[1][e->id] = sum2_squared;
-          spaces[0]->set_element_order(e->id, max1);
-          spaces[1]->set_element_order(e->id, max2);
+          this->spaces[0]->set_element_order_internal(e->id, max1);
+          this->spaces[1]->set_element_order_internal(e->id, max2);
           k++; // number of unrefined elements
         }
       }
@@ -399,8 +421,8 @@ void Adapt::unrefine(double thr)
       for (int i = 0; i < 2; i++)
         if (errors_squared[i][e->id] < thr/4 * errors_squared[regular_queue[0].comp][regular_queue[0].id])
       {
-        int oo = H2D_GET_H_ORDER(spaces[i]->get_element_order(e->id));
-        spaces[i]->set_element_order(e->id, std::max(oo - 1, 1));
+        int oo = H2D_GET_H_ORDER(this->spaces[i]->get_element_order(e->id));
+        this->spaces[i]->set_element_order_internal(e->id, std::max(oo - 1, 1));
         k++;
       }
     }
@@ -425,7 +447,7 @@ void Adapt::unrefine(double thr)
             if (e->sons[i] != NULL)
           {
             sum_squared += errors_squared[m][e->sons[i]->id];
-            int oo = spaces[m]->get_element_order(e->sons[i]->id);
+            int oo = this->spaces[m]->get_element_order(e->sons[i]->id);
             if (oo > max) max = oo;
           }
           if ((sum_squared < thr * errors_squared[regular_queue[0].comp][regular_queue[0].id]))
@@ -433,7 +455,7 @@ void Adapt::unrefine(double thr)
           {
             mesh[m]->unrefine_element(e->id);
             errors_squared[m][e->id] = sum_squared;
-            spaces[m]->set_element_order(e->id, max);
+            this->spaces[m]->set_element_order_internal(e->id, max);
             k++; // number of unrefined elements
           }
         }
@@ -442,8 +464,8 @@ void Adapt::unrefine(double thr)
       {
         if (errors_squared[m][e->id] < thr/4 * errors_squared[regular_queue[0].comp][regular_queue[0].id])
         {
-          int oo = H2D_GET_H_ORDER(spaces[m]->get_element_order(e->id));
-          spaces[m]->set_element_order(e->id, std::max(oo - 1, 1));
+          int oo = H2D_GET_H_ORDER(this->spaces[m]->get_element_order(e->id));
+          this->spaces[m]->set_element_order_internal(e->id, std::max(oo - 1, 1));
           k++;
         }
       }
@@ -455,20 +477,31 @@ void Adapt::unrefine(double thr)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Adapt::set_biform(int i, int j, biform_val_t bi_form, biform_ord_t bi_ord)
+void Adapt::set_error_form(int i, int j, matrix_form_val_t bi_form, matrix_form_ord_t bi_ord)
 {
-  error_if(i < 0 || i >= num_comps || j < 0 || j >= num_comps, "invalid component number (%d, %d), max. supported components: %d", i, j, H2D_MAX_COMPONENTS);
+  error_if(i < 0 || i >= this->neq || j < 0 || j >= this->neq, "invalid component number (%d, %d), max. supported components: %d", i, j, H2D_MAX_COMPONENTS);
 
   form[i][j] = bi_form;
   ord[i][j] = bi_ord;
 }
 
+// case i = j = 0
+void Adapt::set_error_form(matrix_form_val_t bi_form, matrix_form_ord_t bi_ord)
+{
+  int i = 0;
+  int j = 0;
+
+  form[i][j] = bi_form;
+  ord[i][j] = bi_ord;
+}
+
+
 void Adapt::set_solutions(Tuple<Solution*> solutions, Tuple<Solution*> ref_solutions) {
   error_if(solutions.size() != ref_solutions.size(), "Number of solutions (%d) and a number of reference solutions (%d) is not the same.", solutions.size(), ref_solutions.size());
-  error_if(solutions.size() != num_comps, "Wrong number of solutions (%d), expected %d.", solutions.size(), num_comps);
+  error_if(solutions.size() != this->neq, "Wrong number of solutions (%d), expected %d.", solutions.size(), this->neq);
 
   // obtain solutions
-  for (int i = 0; i < num_comps; i++) {
+  for (int i = 0; i < this->neq; i++) {
     sln[i] = solutions[i];
     error_if(sln[i] == NULL, "A solution for a component %d is NULL.", i);
     sln[i]->set_quad_2d(&g_quad_2d_std);
@@ -480,9 +513,9 @@ void Adapt::set_solutions(Tuple<Solution*> solutions, Tuple<Solution*> ref_solut
   have_solutions = true;
 }
 
-scalar Adapt::eval_error(biform_val_t bi_fn, biform_ord_t bi_ord,
-                             MeshFunction *sln1, MeshFunction *sln2, MeshFunction *rsln1, MeshFunction *rsln2,
-                             RefMap *rv1,        RefMap *rv2,        RefMap *rrv1,        RefMap *rrv2)
+double Adapt::eval_elem_error_squared(matrix_form_val_t bi_fn, matrix_form_ord_t bi_ord,
+                                 MeshFunction *sln1, MeshFunction *sln2, MeshFunction *rsln1, MeshFunction *rsln2,
+                                 RefMap *rv1, RefMap *rv2, RefMap *rrv1, RefMap *rrv2)
 {
   // determine the integration order
   int inc = (rsln1->get_num_components() == 2) ? 1 : 0;
@@ -491,7 +524,7 @@ scalar Adapt::eval_error(biform_val_t bi_fn, biform_ord_t bi_ord,
 
   double fake_wt = 1.0;
   Geom<Ord>* fake_e = init_geom_ord();
-  Ord o = bi_ord(1, &fake_wt, ou, ov, fake_e, NULL);
+  Ord o = bi_ord(1, &fake_wt, NULL, ou, ov, fake_e, NULL);
   int order = rrv1->get_inv_ref_order();
   order += o.get_order();
   limit_order(order);
@@ -521,7 +554,7 @@ scalar Adapt::eval_error(biform_val_t bi_fn, biform_ord_t bi_ord,
   err1->subtract(*v1);
   err2->subtract(*v2);
 
-  scalar res = bi_fn(np, jwt, err1, err2, e, NULL);
+  scalar res = bi_fn(np, jwt, NULL, err1, err2, e, NULL);
 
   e->free(); delete e;
   delete [] jwt;
@@ -530,12 +563,12 @@ scalar Adapt::eval_error(biform_val_t bi_fn, biform_ord_t bi_ord,
   v1->free_fn(); delete v1;
   v2->free_fn(); delete v2;
 
-  return res;
+  return std::abs(res);
 }
 
 
-scalar Adapt::eval_norm(biform_val_t bi_fn, biform_ord_t bi_ord,
-                            MeshFunction *rsln1, MeshFunction *rsln2, RefMap *rrv1, RefMap *rrv2)
+double Adapt::eval_elem_norm_squared(matrix_form_val_t bi_fn, matrix_form_ord_t bi_ord,
+                                MeshFunction *rsln1, MeshFunction *rsln2, RefMap *rrv1, RefMap *rrv2)
 {
   // determine the integration order
   int inc = (rsln1->get_num_components() == 2) ? 1 : 0;
@@ -544,7 +577,7 @@ scalar Adapt::eval_norm(biform_val_t bi_fn, biform_ord_t bi_ord,
 
   double fake_wt = 1.0;
   Geom<Ord>* fake_e = init_geom_ord();
-  Ord o = bi_ord(1, &fake_wt, ou, ov, fake_e, NULL);
+  Ord o = bi_ord(1, &fake_wt, NULL, ou, ov, fake_e, NULL);
   int order = rrv1->get_inv_ref_order();
   order += o.get_order();
   limit_order(order);
@@ -569,34 +602,34 @@ scalar Adapt::eval_norm(biform_val_t bi_fn, biform_ord_t bi_ord,
   Func<scalar>* v1 = init_fn(rsln1, rrv1, order);
   Func<scalar>* v2 = init_fn(rsln2, rrv2, order);
 
-  scalar res = bi_fn(np, jwt, v1, v2, e, NULL);
+  scalar res = bi_fn(np, jwt, NULL, v1, v2, e, NULL);
 
   e->free(); delete e;
   delete [] jwt;
   v1->free_fn(); delete v1;
   v2->free_fn(); delete v2;
 
-  return res;
+  return std::abs(res);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-double Adapt::calc_error(unsigned int error_flags) {
+double Adapt::calc_elem_errors(unsigned int error_flags) {
   error_if(!have_solutions, "A (coarse) solution and a reference solutions are not set, see set_solutions()");
 
   // prepare multi-mesh traversal and error arrays
-  AUTOLA_OR(Mesh*, meshes, 2*num_comps);
-  Mesh** ref_meshes = meshes + num_comps;
-  AUTOLA_OR(Transformable*, tr, 2*num_comps);
-  Transformable** ref_tr = tr + num_comps;
+  AUTOLA_OR(Mesh*, meshes, 2*this->neq);
+  Mesh** ref_meshes = meshes + this->neq;
+  AUTOLA_OR(Transformable*, tr, 2*this->neq);
+  Transformable** ref_tr = tr + this->neq;
   Traverse trav;
   num_act_elems = 0;
-  for (int i = 0; i < num_comps; i++)
+  for (int i = 0; i < this->neq; i++)
   {
     meshes[i] = sln[i]->get_mesh();
-    meshes[i+num_comps] = rsln[i]->get_mesh();
+    meshes[i+this->neq] = rsln[i]->get_mesh();
     tr[i] = sln[i];
-    tr[i+num_comps] = rsln[i];
+    tr[i+this->neq] = rsln[i];
 
     num_act_elems += sln[i]->get_mesh()->get_num_active_elements();
 
@@ -609,32 +642,27 @@ double Adapt::calc_error(unsigned int error_flags) {
 
   //prepare space for norms
   double norms_squared_sum = 0.0;
-  std::vector<double> norms_squared(num_comps, 0.0);
+  std::vector<double> norms_squared(this->neq, 0.0);
   double errors_squared_abs_sum = 0.0;
 
   //calculate error
   Element** ee;
-  trav.begin(2*num_comps, meshes, tr);
+  trav.begin(2*this->neq, meshes, tr);
   while ((ee = trav.get_next_state(NULL, NULL)) != NULL)
   {
-    for (int i = 0; i < num_comps; i++)
+    for (int i = 0; i < this->neq; i++)
     {
       RefMap* rmi = sln[i]->get_refmap();
       RefMap* rrmi = rsln[i]->get_refmap();
-      for (int j = 0; j < num_comps; j++)
+      for (int j = 0; j < this->neq; j++)
       {
         RefMap* rmj = sln[j]->get_refmap();
         RefMap* rrmj = rsln[j]->get_refmap();
         double error_squared, norm_squared;
         if (form[i][j] != NULL)
         {
-          #ifndef H2D_COMPLEX
-          error_squared = fabs(eval_error(form[i][j], ord[i][j], sln[i], sln[j], rsln[i], rsln[j], rmi, rmj, rrmi, rrmj));
-          norm_squared = fabs(eval_norm(form[i][j], ord[i][j], rsln[i], rsln[j], rrmi, rrmj));
-          #else
-          error_squared = std::abs(eval_error(form[i][j], ord[i][j], sln[i], sln[j], rsln[i], rsln[j], rmi, rmj, rrmi, rrmj));
-          norm_squared = std::abs(eval_norm(form[i][j], ord[i][j], rsln[i], rsln[j], rrmi, rrmj));
-          #endif
+          error_squared = eval_elem_error_squared(form[i][j], ord[i][j], sln[i], sln[j], rsln[i], rsln[j], rmi, rmj, rrmi, rrmj);
+          norm_squared = eval_elem_norm_squared(form[i][j], ord[i][j], rsln[i], rsln[j], rrmi, rrmj);
 
           norms_squared[i] += norm_squared;
           norms_squared_sum += norm_squared;
@@ -649,7 +677,7 @@ double Adapt::calc_error(unsigned int error_flags) {
   //make the error relative
   if ((error_flags & H2D_ELEMENT_ERROR_MASK) == H2D_ELEMENT_ERROR_REL) {
     errors_squared_sum = 0.0;
-    for (int i = 0; i < num_comps; i++) {
+    for (int i = 0; i < this->neq; i++) {
       double norm_squared = norms_squared[i];
       double* errors_squared_comp = errors_squared[i];
       Element* e;
@@ -694,10 +722,83 @@ void Adapt::fill_regular_queue(Mesh** meshes, Mesh** ref_meshes) {
   //prepare initial fill
   Element* e;
   vector<ElementReference>::iterator elem_info = regular_queue.begin();
-  for (int i = 0; i < num_comps; i++)
+  for (int i = 0; i < this->neq; i++)
     for_all_active_elements(e, meshes[i])
       regular_queue.push_back(ElementReference(e->id, i));
 
   //sort
   std::sort(regular_queue.begin(), regular_queue.end(), CompareElements(errors_squared));
 }
+
+// Mesh is adapted to represent a given function with given accuracy
+// in a given projection norm.
+void adapt_to_exact_function(Space *space, int proj_norm, ExactFunction exactfn,
+                    RefinementSelectors::Selector* selector, double threshold, int strategy,
+                    int mesh_regularity, double err_stop, int ndof_stop, bool verbose,
+                    Solution* sln)
+{
+  if (verbose == true) printf("Mesh adaptivity to an exact function:\n");
+
+  // Initialize views.
+  char title[200];
+  sprintf(title, "Projection of initial condition");
+  ScalarView* view = new ScalarView(title, 0, 0, 410, 300);
+  sprintf(title, "Initial mesh");
+  OrderView* ordview = new OrderView(title, 420, 0, 350, 300);
+  view->fix_scale_width(80);
+
+  // Adaptivity loop:
+  Solution* sln_coarse = new Solution();
+  Solution* sln_fine = new Solution();
+  int as = 1; bool done = false;
+  do
+  {
+    // Construct the globally refined reference mesh.
+    Mesh rmesh;
+    rmesh.copy(space->get_mesh());
+    rmesh.refine_all_elements();
+
+    // Setup space for the reference solution.
+    Space *rspace = space->dup(&rmesh);
+    int order_increase = 1;
+    rspace->copy_orders(space, order_increase);
+
+    // Assign the function f() to the fine mesh.
+    sln_fine->set_exact(&rmesh, exactfn);
+
+    // Project the function f() on the coarse mesh.
+    project_global(space, proj_norm, exactfn, sln_coarse);
+
+    // Calculate element errors and total error estimate.
+    Adapt hp(space, proj_norm);
+    hp.set_solutions(sln_coarse, sln_fine);
+    double err_est = hp.calc_elem_errors() * 100;
+    if (verbose == true) printf("Step %d, ndof %d, proj_error %g%%\n",
+                 as, space->get_num_dofs(), err_est);
+
+    // If err_est too large, adapt the mesh.
+    if (err_est < err_stop) done = true;
+    else {
+      double to_be_processed = 0;
+      done = hp.adapt(selector, threshold, strategy, mesh_regularity, to_be_processed);
+
+      if (space->get_num_dofs() >= ndof_stop) done = true;
+    }
+
+    // View the approximation of the exact function.
+    if (verbose) {
+      view->show(sln_coarse);
+      char title[100];
+      sprintf(title, "Initial mesh, step %d", as);
+      ordview->set_title(title);
+      ordview->show(space);
+      //View::wait(H2DV_WAIT_KEYPRESS);
+    }
+
+    as++;
+  }
+  while (done == false);
+
+  if (sln != NULL) sln->copy(sln_coarse);
+}
+

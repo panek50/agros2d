@@ -125,7 +125,7 @@ static bool write_console(const char code, const bool emphasize, const char* tex
     case H2D_EC_ASSERT: console_attrs |= FOREGROUND_RED; break;
     case H2D_EC_WARNING: console_attrs |= FOREGROUND_RED | FOREGROUND_GREEN; break;
     case H2D_EC_INFO: console_bold = true;
-    case H2D_EC_VERBOSE: console_attrs |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; break;
+    case H2D_EC_VERBOSE: console_attrs |= FOREGROUND_BLUE; break;
     case H2D_EC_TRACE: console_attrs |= FOREGROUND_BLUE; break;
     case H2D_EC_TIME: console_attrs |= FOREGROUND_GREEN | FOREGROUND_BLUE; break;
     case H2D_EC_DEBUG: console_attrs |= FOREGROUND_RED | FOREGROUND_BLUE; break;
@@ -256,7 +256,7 @@ public:
     printf("\n-------------------------------------------------\n");
     printf("          This application uses Hermes2D\n");
     printf("       Hermes2D is a C++ library for rapid \n");
-    printf(" prototyping of adaptive FEM and hp-FEM solvers\n");
+    printf("  development of adaptive FEM and hp-FEM solvers\n");
     printf("      developed by the hp-FEM group at UNR\n");
     printf("     and distributed under the GPL license.\n");
     printf("    For more details visit http://hpfem.org/.\n");

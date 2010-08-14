@@ -17,17 +17,20 @@
 #include "space_hcurl.h"
 #include "matrix_old.h"
 #include "quad_all.h"
+#include "shapeset_hc_all.h"
 
 
 double** HcurlSpace::hcurl_proj_mat = NULL;
 double*  HcurlSpace::hcurl_chol_p   = NULL;
 int      HcurlSpace::hcurl_proj_ref = 0;
 
-
-HcurlSpace::HcurlSpace(Mesh* mesh, Shapeset* shapeset)
-          : Space(mesh, shapeset)
+HcurlSpace::HcurlSpace(Mesh* mesh, BCType (*bc_type_callback)(int), 
+		       scalar (*bc_value_callback_by_coord)(int, double, double), int p_init,
+                       Shapeset* shapeset)
+          : Space(mesh, shapeset, bc_type_callback, bc_value_callback_by_coord, p_init)
 {
-  if (shapeset->get_num_components() < 2) error("HcurlSpace requires a vector shapeset.");
+  if (shapeset == NULL) this->shapeset = new HcurlShapeset;
+  if (this->shapeset->get_num_components() < 2) error("HcurlSpace requires a vector shapeset.");
 
   if (!hcurl_proj_ref++)
   {
@@ -36,6 +39,13 @@ HcurlSpace::HcurlSpace(Mesh* mesh, Shapeset* shapeset)
 
   proj_mat = hcurl_proj_mat;
   chol_p   = hcurl_chol_p;
+
+  // set uniform poly order in elements
+  if (p_init < 0) error("P_INIT must be >= 0 in an Hcurl space.");
+  else this->set_uniform_order_internal(p_init);
+
+  // enumerate basis functions
+  this->assign_dofs();
 }
 
 
@@ -51,12 +61,23 @@ HcurlSpace::~HcurlSpace()
 
 Space* HcurlSpace::dup(Mesh* mesh) const
 {
-  HcurlSpace* space = new HcurlSpace(mesh, shapeset);
+  HcurlSpace* space = new HcurlSpace(mesh, bc_type_callback, bc_value_callback_by_coord, 0, shapeset);
   space->copy_callbacks(this);
   return space;
 }
 
+// Sets element order and updates enumeration of dofs. Intended for 
+// the user.
 void HcurlSpace::set_element_order(int id, int order)
+{
+  set_element_order_internal(id, order);
+
+  // since space changed, call assign_dofs()
+  this->assign_dofs();
+}
+
+// Sets element order without updating the enumeration of dofs. For internal use.
+void HcurlSpace::set_element_order_internal(int id, int order)
 {
   assert_msg(mesh->get_element(id)->is_quad() || H2D_GET_V_ORDER(order) == 0, "Element #%d is triangle but vertical is not zero", id);
   if (id < 0 || id >= mesh->get_max_element_id())

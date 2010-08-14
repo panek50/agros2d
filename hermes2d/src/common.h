@@ -34,6 +34,14 @@
 
 #include <cmath>
 
+// Matrix solvers
+enum MatrixSolverType 
+{
+   SOLVER_UMFPACK, 
+   SOLVER_PETSC, 
+   SOLVER_MUMPS
+};
+
 // STL stuff
 #include <algorithm>
 #include <vector>
@@ -51,6 +59,7 @@
 #include <Judy.h>
 #include "auto_local_array.h"
 #include "common_time_period.h"
+#include "tuple.h"
 
 // Enabling second derivatives in weak forms. Turned off by default. Second
 // derivatives are employed, among others, by stabilization methods for
@@ -75,7 +84,7 @@ const int H2D_ANY = -1234;
 // how many bits the order number takes
 const int H2D_ORDER_BITS = 5;
 const int H2D_ORDER_MASK = (1 << H2D_ORDER_BITS) - 1;
-
+const int H2D_DEFAULT_PROJ_TYPE = 1;
 
 // macros for combining quad horizontal and vertical orders
 #define H2D_MAKE_QUAD_ORDER(h_order, v_order) (((v_order) << H2D_ORDER_BITS) + (h_order))
@@ -83,15 +92,7 @@ const int H2D_ORDER_MASK = (1 << H2D_ORDER_BITS) - 1;
 #define H2D_GET_V_ORDER(order) ((order) >> H2D_ORDER_BITS)
 extern H2D_API const std::string get_quad_order_str(const int quad_order); ///< Returns string representation of the quad order: used for debugging purposses.
 
-#ifdef H2D_COMPLEX
-  #include <complex>
-  typedef std::complex<double> cplx;
-  typedef cplx scalar;
-  typedef cplx complex2[2];
-#else
-  typedef double scalar;
-#endif
-
+#include "scalar.h"
 
 typedef int int2[2];
 typedef int int3[3];
@@ -440,10 +441,6 @@ extern H2D_API void throw_exception(char *text);
 /* Uncomment this line to disable internal mesh compatibility 
    tests in Traverse:begin(). */ 
 //#define H2D_DISABLE_MULTIMESH_TESTS
-
-// To avoid compilation warnings:
-#undef _XOPEN_SOURCE
-#undef _POSIX_C_SOURCE
 
 #endif
 

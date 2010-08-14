@@ -34,6 +34,32 @@ VectorView::VectorView(const char* title, int x, int y, int width, int height)
   length_coef = 1.0;
 }
 
+#ifndef _MSC_VER
+VectorView::VectorView(const char* title, WinGeom* wg)
+          : View(title, wg)
+{
+  gx = gy = 0.0;
+  gs = 20.0;
+  hexa = true;
+  mode = 0;
+  lines = false;
+  pmode = false;
+  length_coef = 1.0;
+}
+#endif
+
+VectorView::VectorView(char* title, WinGeom* wg)
+          : View(title, wg)
+{
+  gx = gy = 0.0;
+  gs = 20.0;
+  hexa = true;
+  mode = 0;
+  lines = false;
+  pmode = false;
+  length_coef = 1.0;
+}
+
 
 void VectorView::show(MeshFunction* vsln, double eps)
 {
@@ -111,7 +137,7 @@ void VectorView::plot_arrow(double x, double y, double xval, double yval, double
     glEnd();
 
     glTranslated(x,y,0.0);
-    glRotated(atan2(-yval, xval) * 180.0/M_PI, 0.0, 0.0, 1.0);
+    glRotated(atan2(-yval,xval) * 180.0/M_PI, 0.0, 0.0, 1.0);
 
     glBegin(GL_TRIANGLES);
     glVertex2d(length + 3 * width,  0.0);

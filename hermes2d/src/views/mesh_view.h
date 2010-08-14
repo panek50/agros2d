@@ -37,6 +37,10 @@ class H2D_API MeshView : public View
 public:
 
   MeshView(const char* title = "MeshView", DEFAULT_WINDOW_POS);
+#ifndef _MSC_VER
+	MeshView(const char* title = "MeshView", WinGeom* wg = NULL);
+#endif
+  MeshView(char* title, WinGeom* wg = NULL);
   virtual ~MeshView();
 
   void show(Mesh* mesh);
@@ -45,7 +49,7 @@ protected:
 
   Linearizer lin;
 
-  bool b_ids, b_markers;
+  bool b_ids, b_markers, b_elem_mrk;
 
   struct ObjInfo
   {

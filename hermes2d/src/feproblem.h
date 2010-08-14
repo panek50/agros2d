@@ -17,7 +17,7 @@
 #ifndef __H2D_FEPROBLEM_H
 #define __H2D_FEPROBLEM_H
 
-#include "matrix.h"
+#include "matrix_old.h"
 #include "forms.h"
 #include "weakform.h"
 #include <map>
@@ -25,9 +25,9 @@
 class Space;
 class PrecalcShapeset;
 class WeakForm;
-class Matrix;
+class _Matrix;
 class SparseMatrix;
-class Vector;
+class _Vector;
 class Solver;
 
 /// Finite Element problem class
@@ -40,13 +40,15 @@ public:
   virtual ~FeProblem();
   void free();
 
-  void set_spaces(int n, ...);
-  void set_pss(int n, ...);
+  void set_spaces(Tuple<Space*>spaces);
+  //void set_pss(Tuple<PrecalcShapeset*>pss);
   Space* get_space(int n) {  return this->spaces[n];  }
   PrecalcShapeset* get_pss(int n) {  return this->pss[n];  }
 
   void create(SparseMatrix *mat);
-  void assemble(const Vector *x, Vector *f, Matrix *jac);
+  // OLD void assemble(const _Vector *x, _Vector *f, _Matrix *jac);
+  void assemble(_Vector* rhs, _Matrix* jac, _Vector* x = NULL);
+  void assemble(_Vector* rhs, _Matrix* jac, Tuple<Solution*> u_ext =  Tuple<Solution*> ());
 
   int get_num_dofs();
   bool is_matrix_free() { return wf->is_matrix_free(); }
@@ -55,11 +57,10 @@ public:
 protected:
   WeakForm *wf;
 
-  int ndofs;
+  int ndof;
   int *sp_seq;
   int wf_seq;
   Space **spaces;
-  Solution **slns;
   PrecalcShapeset** pss;
 
   int num_user_pss;
@@ -132,10 +133,10 @@ protected:
   void init_cache();
   void delete_cache();
 
-  scalar eval_form(WeakForm::JacFormVol *bf, Solution *sln[], PrecalcShapeset *fu, PrecalcShapeset *fv, RefMap *ru, RefMap *rv);
-  scalar eval_form(WeakForm::ResFormVol *lf, Solution *sln[], PrecalcShapeset *fv, RefMap *rv);
-  scalar eval_form(WeakForm::JacFormSurf *bf, Solution *sln[], PrecalcShapeset *fu, PrecalcShapeset *fv, RefMap *ru, RefMap *rv, EdgePos* ep);
-  scalar eval_form(WeakForm::ResFormSurf *lf, Solution *sln[], PrecalcShapeset *fv, RefMap *rv, EdgePos* ep);
+  scalar eval_form(WeakForm::MatrixFormVol *mfv, Tuple<Solution *> u_ext, PrecalcShapeset *fu, PrecalcShapeset *fv, RefMap *ru, RefMap *rv);
+  scalar eval_form(WeakForm::VectorFormVol *vfv, Tuple<Solution *> u_ext, PrecalcShapeset *fv, RefMap *rv);
+  scalar eval_form(WeakForm::MatrixFormSurf *mfv, Tuple<Solution *> u_ext, PrecalcShapeset *fu, PrecalcShapeset *fv, RefMap *ru, RefMap *rv, EdgePos* ep);
+  scalar eval_form(WeakForm::VectorFormSurf *vfv, Tuple<Solution *> u_ext, PrecalcShapeset *fv, RefMap *rv, EdgePos* ep);
 
 };
 

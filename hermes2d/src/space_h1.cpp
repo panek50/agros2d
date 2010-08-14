@@ -17,23 +17,33 @@
 #include "space_h1.h"
 #include "matrix_old.h"
 #include "quad_all.h"
-
+#include "shapeset_h1_all.h"
 
 double** H1Space::h1_proj_mat = NULL;
 double*  H1Space::h1_chol_p   = NULL;
 int      H1Space::h1_proj_ref = 0;
 
-
-H1Space::H1Space(Mesh* mesh, Shapeset* shapeset)
-       : Space(mesh, shapeset)
+H1Space::H1Space(Mesh* mesh, BCType (*bc_type_callback)(int), 
+                 scalar (*bc_value_callback_by_coord)(int, double, double), int p_init, 
+                 Shapeset* shapeset)
+        : Space(mesh, shapeset, bc_type_callback, bc_value_callback_by_coord, p_init)
 {
+  if (shapeset == NULL) this->shapeset = new H1Shapeset;
+
   if (!h1_proj_ref++)
   {
-    // fixme: separate projection matrices for different shapesets
+    // FIXME: separate projection matrices for different shapesets
     precalculate_projection_matrix(2, h1_proj_mat, h1_chol_p);
   }
   proj_mat = h1_proj_mat;
   chol_p   = h1_chol_p;
+
+  // set uniform poly order in elements
+  if (p_init < 1) error("P_INIT must be >=  1 in an H1 space.");
+  else this->set_uniform_order_internal(p_init);
+
+  // enumerate basis functions
+  this->assign_dofs();
 }
 
 
@@ -46,10 +56,9 @@ H1Space::~H1Space()
   }
 }
 
-
 Space* H1Space::dup(Mesh* mesh) const
 {
-  H1Space* space = new H1Space(mesh, shapeset);
+  H1Space* space = new H1Space(mesh, bc_type_callback, bc_value_callback_by_coord, 1, shapeset);
   space->copy_callbacks(this);
   return space;
 }
