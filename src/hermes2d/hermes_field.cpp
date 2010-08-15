@@ -274,10 +274,12 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
         selector = new RefinementSelectors::HOnlySelector();
         break;
     case AdaptivityType_P:
-        selector = new RefinementSelectors::POnlySelector(H2DRS_DEFAULT_ORDER, 1, 1);
+        selector = new RefinementSelectors::H1ProjBasedSelector(RefinementSelectors::H2D_P_ANISO,
+                                                                Util::config()->convExp,
+                                                                H2DRS_DEFAULT_ORDER);
         break;
     case AdaptivityType_HP:
-        selector = new RefinementSelectors::H1ProjBasedSelector(RefinementSelectors::H2D_H_ANISO,
+        selector = new RefinementSelectors::H1ProjBasedSelector(RefinementSelectors::H2D_HP_ANISO,
                                                                 Util::config()->convExp,
                                                                 H2DRS_DEFAULT_ORDER);
         break;
