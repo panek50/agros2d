@@ -72,6 +72,16 @@ void LogDialog::createControls()
     setLayout(layout);
 }
 
+void LogDialog::gotoLine(int line)
+{
+    int pos = lstMessages->document()->findBlockByNumber(line - 1).position();
+
+    QTextCursor cur = lstMessages->textCursor();
+    cur.setPosition(pos, QTextCursor::MoveAnchor);
+    lstMessages->setTextCursor(cur);
+    lstMessages->ensureCursorVisible();
+}
+
 void LogDialog::showDialog()
 {
     show();
@@ -117,6 +127,8 @@ void LogDialog::loadProgressLog()
         btnShowAdaptivityErrorChart->setEnabled(false);
         btnShowAdaptivityDOFChart->setEnabled(false);
     }
+
+    gotoLine(lstMessages->document()->lineCount());
 }
 
 void LogDialog::loadApplicationLog()
@@ -159,6 +171,8 @@ void LogDialog::loadApplicationLog()
 
     btnShowAdaptivityErrorChart->setEnabled(false);
     btnShowAdaptivityDOFChart->setEnabled(false);
+
+    gotoLine(lstMessages->document()->lineCount());
 }
 
 void LogDialog::doClose()

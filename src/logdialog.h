@@ -36,6 +36,7 @@ public:
 
 private:
     void createControls();
+    void gotoLine(int line);
 
     QTextEdit *lstMessages;
     QPushButton *btnSaveLog;
