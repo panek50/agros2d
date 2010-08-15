@@ -1159,6 +1159,9 @@ ErrorResult Scene::readFromFile(const QString &fileName)
     m_problemInfo->timeTotal.text = eleProblem.toElement().attribute("timetotal", "1");
     m_problemInfo->initialCondition.text = eleProblem.toElement().attribute("initialcondition", "0");
 
+    // solver
+    m_problemInfo->matrixCommonSolverType = matrixCommonSolverTypeFromStringKey(eleProblem.toElement().attribute("matrixsolver", "sparselib_gmres"));
+
     // startup script
     QDomNode eleScriptStartup = eleProblem.toElement().elementsByTagName("scriptstartup").at(0);
     m_problemInfo->scriptStartup = eleScriptStartup.toElement().text();
@@ -1352,6 +1355,8 @@ ErrorResult Scene::writeToFile(const QString &fileName)
     eleProblem.setAttribute("timestep", m_problemInfo->timeStep.text);
     eleProblem.setAttribute("timetotal", m_problemInfo->timeTotal.text);
     eleProblem.setAttribute("initialcondition", m_problemInfo->initialCondition.text);
+    // solver
+    eleProblem.setAttribute("matrixsolver", matrixCommonSolverTypeToStringKey(m_problemInfo->matrixCommonSolverType));
 
     // startup script
     QDomElement eleScriptStartup = doc.createElement("scriptstartup");

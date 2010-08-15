@@ -592,6 +592,9 @@ void ProgressItemSolve::solve()
                  arg(problemTypeString(Util::scene()->problemInfo()->problemType)).
                  arg(analysisTypeString(Util::scene()->problemInfo()->analysisType)), false, 1);
 
+    emit message(tr("Matrix solver: %1").
+                 arg(matrixCommonSolverTypeString(Util::scene()->problemInfo()->matrixCommonSolverType)), false, 1);
+
     QList<SolutionArray *> *solutionArrayList = Util::scene()->problemInfo()->hermes()->solve(this);
 
     if (!solutionArrayList->isEmpty())

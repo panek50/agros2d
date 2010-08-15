@@ -55,7 +55,7 @@ scalar electrostatic_bc_values(int marker, double x, double y)
 }
 
 template<typename Real, typename Scalar>
-Scalar electrostatic_linear_form_surf(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar electrostatic_linear_form_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     double surfaceCharge = 0.0;
 
@@ -69,7 +69,7 @@ Scalar electrostatic_linear_form_surf(int n, double *wt, Func<Real> *v, Geom<Rea
 }
 
 template<typename Real, typename Scalar>
-Scalar electrostatic_bilinear_form(int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar electrostatic_bilinear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return electrostaticLabel[e->marker].permittivity * int_grad_u_grad_v<Real, Scalar>(n, wt, u, v);
@@ -78,7 +78,7 @@ Scalar electrostatic_bilinear_form(int n, double *wt, Func<Real> *u, Func<Real> 
 }
 
 template<typename Real, typename Scalar>
-Scalar electrostatic_linear_form(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar electrostatic_linear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return electrostaticLabel[e->marker].charge_density / EPS0 * int_v<Real, Scalar>(n, wt, v);
@@ -94,9 +94,9 @@ void callbackElectrostaticSpace(Tuple<Space *> space)
 
 void callbackElectrostaticWeakForm(WeakForm *wf, Tuple<Solution *> slnArray)
 {
-    wf->add_biform(0, 0, callback(electrostatic_bilinear_form));
-    wf->add_liform(0, callback(electrostatic_linear_form));
-    wf->add_liform_surf(0, callback(electrostatic_linear_form_surf));
+    wf->add_matrix_form(0, 0, callback(electrostatic_bilinear_form));
+    wf->add_vector_form(0, callback(electrostatic_linear_form));
+    wf->add_vector_form_surf(0, callback(electrostatic_linear_form_surf));
 }
 
 // **************************************************************************************************************************

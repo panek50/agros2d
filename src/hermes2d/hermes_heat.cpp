@@ -65,7 +65,7 @@ scalar heat_bc_values(int marker, double x, double y)
 }
 
 template<typename Real, typename Scalar>
-Scalar heat_bilinear_form_surf(int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar heat_bilinear_form_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     double h = 0.0;
 
@@ -79,7 +79,7 @@ Scalar heat_bilinear_form_surf(int n, double *wt, Func<Real> *u, Func<Real> *v, 
 }
 
 template<typename Real, typename Scalar>
-Scalar heat_linear_form_surf(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar heat_linear_form_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (heatEdge[e->marker].type == PhysicFieldBC_None)
         return 0.0;
@@ -102,7 +102,7 @@ Scalar heat_linear_form_surf(int n, double *wt, Func<Real> *v, Geom<Real> *e, Ex
 }
 
 template<typename Real, typename Scalar>
-Scalar heat_bilinear_form(int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar heat_bilinear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return heatLabel[e->marker].thermal_conductivity * int_grad_u_grad_v<Real, Scalar>(n, wt, u, v)
@@ -113,7 +113,7 @@ Scalar heat_bilinear_form(int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<
 }
 
 template<typename Real, typename Scalar>
-Scalar heat_linear_form(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar heat_linear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return heatLabel[e->marker].volume_heat * int_v<Real, Scalar>(n, wt, v)
@@ -131,13 +131,13 @@ void callbackHeatSpace(Tuple<Space *> space)
 
 void callbackHeatWeakForm(WeakForm *wf, Tuple<Solution *> slnArray)
 {
-    wf->add_biform(0, 0, callback(heat_bilinear_form));
+    wf->add_matrix_form(0, 0, callback(heat_bilinear_form));
     if (analysisType == AnalysisType_Transient)
-        wf->add_liform(0, callback(heat_linear_form), H2D_ANY, 1, slnArray.at(0));
+        wf->add_vector_form(0, callback(heat_linear_form), H2D_ANY, slnArray.at(0));
     else
-        wf->add_liform(0, callback(heat_linear_form));
-    wf->add_biform_surf(0, 0, callback(heat_bilinear_form_surf));
-    wf->add_liform_surf(0, callback(heat_linear_form_surf));
+        wf->add_vector_form(0, callback(heat_linear_form));
+    wf->add_matrix_form_surf(0, 0, callback(heat_bilinear_form_surf));
+    wf->add_vector_form_surf(0, callback(heat_linear_form_surf));
 }
 
 // *******************************************************************************************************

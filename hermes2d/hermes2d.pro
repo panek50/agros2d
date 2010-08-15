@@ -5,8 +5,45 @@ OBJECTS_DIR = build
 CONFIG = += staticlib
 DEFINES += NOGLUT
 
+DEFINES += COMMON_WITH_UMFPACK
+DEFINES += COMMON_WITH_SUPERLU
+DEFINES += COMPLEX=std::complex\<double\>
+
 INCLUDEPATH += src \
-        src/compat
+        src/compat \
+        src/sparselib/mv \
+        src/sparselib/iml \
+        src/sparselib
+
+# sparselib
+SOURCES += src/sparselib/compcol_double.cc \
+        src/sparselib/coord_double.cc \
+        src/sparselib/icpre_double.cc \
+        src/sparselib/iohb_double.cc \
+        src/sparselib/qsort_double.cc \
+        src/sparselib/comprow_double.cc \
+        src/sparselib/diagpre_double.cc \
+        src/sparselib/ilupre_double.cc \
+        src/sparselib/iotext_double.cc \
+        src/sparselib/qsort_int.cc \
+        src/sparselib/mv/mvblasc.cc \
+        src/sparselib/mv/mvblasf.cc \
+        src/sparselib/mv/mvmc.cc \
+        src/sparselib/mv/mvmf.cc \
+        src/sparselib/mv/mvvc.cc \
+        src/sparselib/mv/mvvd.cc \
+        src/sparselib/mv/mvvf.cc \
+        src/sparselib/mv/mvblasd.cc \
+        src/sparselib/mv/mvblasi.cc \
+        src/sparselib/mv/mvmd.cc \
+        src/sparselib/mv/mvmi.cc \
+        src/sparselib/mv/mvvcio.cc \
+        src/sparselib/mv/mvvdio.cc \
+        src/sparselib/mv/mvvi.cc \
+        src/sparselib/spblas/spmm.cc \
+        src/sparselib/spblas/spsm.cc
+
+# hermes
 SOURCES += src/compat/fmemopen.cpp \
         src/compat/c99_functions.cpp \
         src/common.cpp \
@@ -28,6 +65,9 @@ SOURCES += src/compat/fmemopen.cpp \
         src/shapeset_h1_quad.cpp \
         src/precalc.cpp \
         src/solution.cpp \
+        src/limit_order.cpp \
+        src/discrete_problem.cpp \
+        src/linear_problem.cpp \
         src/filter.cpp \
         src/space.cpp \
         src/space_h1.cpp \
@@ -53,11 +93,14 @@ SOURCES += src/compat/fmemopen.cpp \
         src/adapt.cpp \
         src/common_time_period.cpp \
         src/matrix.cpp \
+        src/matrix_old.cpp \
         src/hermes2d.cpp \
         src/weakform.cpp \
-        src/solver_nox.cpp \
-        src/solver_epetra.cpp \
-        src/solver_aztecoo.cpp \
+        src/solvers.cpp \
+        src/python_solvers.cpp \
+        src/umfpack_solver.cpp \
+        src/superlu_solver.cpp \
+        src/sparselib_solver.cpp \
         src/precond_ml.cpp \
         src/precond_ifpack.cpp \
         src/forms.cpp \
@@ -77,3 +120,25 @@ SOURCES += src/compat/fmemopen.cpp \
         src/views/view_support.cpp
 
 HEADERS = += src/common.h
+
+linux-g++ {
+    INCLUDEPATH += /usr/include
+    INCLUDEPATH += /usr/include/suitesparse
+    LIBS += -lumfpack
+    LIBS += -lamd
+    LIBS += -lblas
+}
+win32-g++ {
+    INCLUDEPATH += c:/qt/mingw/include
+    LIBS += -lumfpack
+    LIBS += -lamd
+    LIBS += -lblas
+}
+macx-g++ {
+    INCLUDEPATH += /opt/local/include
+    INCLUDEPATH += /opt/local/include/ufsparse
+
+    LIBS += -lumfpack
+    LIBS += -lamd
+    LIBS += -lblas
+}

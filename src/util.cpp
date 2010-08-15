@@ -28,6 +28,7 @@ static QHash<PhysicFieldBC, QString> physicFieldBCList;
 static QHash<SceneViewPostprocessorShow, QString> sceneViewPostprocessorShowList;
 static QHash<AdaptivityType, QString> adaptivityTypeList;
 static QHash<AnalysisType, QString> analysisTypeList;
+static QHash<MatrixCommonSolverType, QString> matrixCommonSolverTypeList;
 
 QString analysisTypeToStringKey(AnalysisType analysisType) { return analysisTypeList[analysisType]; }
 AnalysisType analysisTypeFromStringKey(const QString &analysisType) { return analysisTypeList.key(analysisType); }
@@ -49,6 +50,9 @@ SceneViewPostprocessorShow sceneViewPostprocessorShowFromStringKey(const QString
 
 QString adaptivityTypeToStringKey(AdaptivityType adaptivityType) { return adaptivityTypeList[adaptivityType]; }
 AdaptivityType adaptivityTypeFromStringKey(const QString &adaptivityType) { return adaptivityTypeList.key(adaptivityType); }
+
+QString matrixCommonSolverTypeToStringKey(MatrixCommonSolverType matrixCommonSolverType) { return matrixCommonSolverTypeList[matrixCommonSolverType]; }
+MatrixCommonSolverType matrixCommonSolverTypeFromStringKey(const QString &matrixCommonSolverType) { return matrixCommonSolverTypeList.key(matrixCommonSolverType); }
 
 void initLists()
 {
@@ -167,6 +171,19 @@ void initLists()
     adaptivityTypeList.insert(AdaptivityType_H, "h-adaptivity");
     adaptivityTypeList.insert(AdaptivityType_P, "p-adaptivity");
     adaptivityTypeList.insert(AdaptivityType_HP, "hp-adaptivity");
+
+    // SolverMatrixType
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_Undefined, "");
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_Umfpack, "umfpack");
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SuperLU, "superlu");
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SparseLib_ConjugateGradient, "sparselib_cg");
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SparseLib_ConjugateGradientSquared, "sparselib_cgs");
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SparseLib_BiConjugateGradient, "sparselib_bicg");
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SparseLib_BiConjugateGradientStabilized, "sparselib_bicgs");
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SparseLib_Chebyshev, "sparselib_chebyshev");
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SparseLib_GeneralizedMinimumResidual, "sparselib_gmres");
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SparseLib_QuasiMinimalResidual, "sparselib_qmr");
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SparseLib_RichardsonIterativeRefinement, "sparselib_rir");
 }
 
 QString physicFieldVariableString(PhysicFieldVariable physicFieldVariable)
@@ -629,6 +646,38 @@ QString adaptivityTypeString(AdaptivityType adaptivityType)
         return QObject::tr("hp-adaptivity");
     default:
         std::cerr << "Adaptivity type '" + QString::number(adaptivityType).toStdString() + "' is not implemented. adaptivityTypeString(AdaptivityType adaptivityType)" << endl;
+        throw;
+    }
+}
+
+QString matrixCommonSolverTypeString(MatrixCommonSolverType matrixSolverType)
+{
+    switch (matrixSolverType)
+    {
+    case MatrixCommonSolverType_Undefined:
+        return QObject::tr("");
+    case MatrixCommonSolverType_Umfpack:
+        return QObject::tr("UMFPACK");
+    case MatrixCommonSolverType_SuperLU:
+        return QObject::tr("SuperLU");
+    case MatrixCommonSolverType_SparseLib_ConjugateGradient:
+        return QObject::tr("SparseLib++ CG");
+    case MatrixCommonSolverType_SparseLib_ConjugateGradientSquared:
+        return QObject::tr("SparseLib++ CGS");
+    case MatrixCommonSolverType_SparseLib_BiConjugateGradient:
+        return QObject::tr("SparseLib++ BiCG");
+    case MatrixCommonSolverType_SparseLib_BiConjugateGradientStabilized:
+        return QObject::tr("SparseLib++ BiCG stab.");
+    case MatrixCommonSolverType_SparseLib_Chebyshev:
+        return QObject::tr("SparseLib++ Chebyshev");
+    case MatrixCommonSolverType_SparseLib_GeneralizedMinimumResidual:
+        return QObject::tr("SparseLib++ GMRES");
+    case MatrixCommonSolverType_SparseLib_QuasiMinimalResidual:
+        return QObject::tr("SparseLib++ QMR");
+    case MatrixCommonSolverType_SparseLib_RichardsonIterativeRefinement:
+        return QObject::tr("SparseLib++ RIR");
+    default:
+        std::cerr << "SolverMatrix type '" + QString::number(matrixSolverType).toStdString() + "' is not implemented. matrixSolverTypeString(MatrixSolverType matrixSolverType)" << endl;
         throw;
     }
 }

@@ -34,31 +34,6 @@ ProblemDialog::ProblemDialog(ProblemInfo *problemInfo, bool isNewProblem, QWidge
     setMaximumSize(sizeHint());
 }
 
-ProblemDialog::~ProblemDialog()
-{
-    delete txtName;
-    delete cmbProblemType;
-    if (m_isNewProblem) delete cmbPhysicField;
-    delete dtmDate;
-    delete txtNumberOfRefinements;
-    delete txtPolynomialOrder;
-    delete txtAdaptivitySteps;
-    delete txtAdaptivityTolerance;
-    delete cmbAdaptivityType;
-
-    // harmonic
-    delete txtFrequency;
-
-    // transient
-    delete txtTransientTimeStep;
-    delete txtTransientTimeTotal;
-    delete txtTransientInitialCondition;
-    delete lblTransientSteps;
-
-    delete txtStartupScript;
-    delete txtDescription;
-}
-
 int ProblemDialog::showDialog()
 {
     return exec();
@@ -126,6 +101,11 @@ QWidget *ProblemDialog::createControlsGeneral()
     connect(cmbPhysicField, SIGNAL(currentIndexChanged(int)), this, SLOT(doPhysicFieldChanged(int)));
     connect(cmbAdaptivityType, SIGNAL(currentIndexChanged(int)), this, SLOT(doAdaptivityChanged(int)));
     connect(cmbAnalysisType, SIGNAL(currentIndexChanged(int)), this, SLOT(doAnalysisTypeChanged(int)));
+
+    // solver matrix type
+    cmbMatrixCommonSolverType = new QComboBox();
+
+    // fill combo boxes
     fillComboBox();
 
     QGridLayout *layoutProblemTable = new QGridLayout();
@@ -150,18 +130,20 @@ QWidget *ProblemDialog::createControlsGeneral()
     layoutProblemTable->addWidget(new QLabel(tr("Adaptivity tolerance (%):")), 9, 0);
     layoutProblemTable->addWidget(txtAdaptivityTolerance, 9, 1);
     // right
-    layoutProblemTable->addWidget(new QLabel(tr("Type of analysis:")), 2, 2);
-    layoutProblemTable->addWidget(cmbAnalysisType, 2, 3);
-    layoutProblemTable->addWidget(new QLabel(tr("Frequency (Hz):")), 3, 2);
-    layoutProblemTable->addWidget(txtFrequency, 3, 3);
-    layoutProblemTable->addWidget(new QLabel(tr("Time step (s):")), 4, 2);
-    layoutProblemTable->addWidget(txtTransientTimeStep, 4, 3);
-    layoutProblemTable->addWidget(new QLabel(tr("Total time (s):")), 5, 2);
-    layoutProblemTable->addWidget(txtTransientTimeTotal, 5, 3);
-    layoutProblemTable->addWidget(new QLabel(tr("Initial condition:")), 6, 2);
-    layoutProblemTable->addWidget(txtTransientInitialCondition, 6, 3);
-    layoutProblemTable->addWidget(new QLabel(tr("Steps:")), 7, 2);
-    layoutProblemTable->addWidget(lblTransientSteps, 7, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Matrix solver:")), 2, 2);
+    layoutProblemTable->addWidget(cmbMatrixCommonSolverType, 2, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Type of analysis:")), 3, 2);
+    layoutProblemTable->addWidget(cmbAnalysisType, 3, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Frequency (Hz):")), 4, 2);
+    layoutProblemTable->addWidget(txtFrequency, 4, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Time step (s):")), 5, 2);
+    layoutProblemTable->addWidget(txtTransientTimeStep, 5, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Total time (s):")), 6, 2);
+    layoutProblemTable->addWidget(txtTransientTimeTotal, 6, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Initial condition:")), 7, 2);
+    layoutProblemTable->addWidget(txtTransientInitialCondition, 7, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Steps:")), 8, 2);
+    layoutProblemTable->addWidget(lblTransientSteps, 8, 3);
 
     // equation
     QHBoxLayout *layoutEquation = new QHBoxLayout();
@@ -211,18 +193,33 @@ QWidget *ProblemDialog::createControlsDescription()
 
 void ProblemDialog::fillComboBox()
 {
+    // problem type
     cmbProblemType->clear();
     cmbProblemType->addItem(problemTypeString(ProblemType_Planar), ProblemType_Planar);
     cmbProblemType->addItem(problemTypeString(ProblemType_Axisymmetric), ProblemType_Axisymmetric);
 
+    // physic field
     fillComboBoxPhysicField(cmbPhysicField);
     cmbPhysicField->setEnabled(m_isNewProblem);
 
+    // adaptivity
     cmbAdaptivityType->clear();
     cmbAdaptivityType->addItem(adaptivityTypeString(AdaptivityType_None), AdaptivityType_None);
     cmbAdaptivityType->addItem(adaptivityTypeString(AdaptivityType_H), AdaptivityType_H);
     cmbAdaptivityType->addItem(adaptivityTypeString(AdaptivityType_P), AdaptivityType_P);
     cmbAdaptivityType->addItem(adaptivityTypeString(AdaptivityType_HP), AdaptivityType_HP);
+
+    // matrix solver
+    cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_Umfpack), MatrixCommonSolverType_Umfpack);
+    cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SuperLU), MatrixCommonSolverType_SuperLU);
+    cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_ConjugateGradient), MatrixCommonSolverType_SparseLib_ConjugateGradient);
+    cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_ConjugateGradientSquared), MatrixCommonSolverType_SparseLib_ConjugateGradientSquared);
+    cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_BiConjugateGradient), MatrixCommonSolverType_SparseLib_BiConjugateGradient);
+    cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_BiConjugateGradientStabilized), MatrixCommonSolverType_SparseLib_BiConjugateGradientStabilized);
+    cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_Chebyshev), MatrixCommonSolverType_SparseLib_Chebyshev);
+    cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_GeneralizedMinimumResidual), MatrixCommonSolverType_SparseLib_GeneralizedMinimumResidual);
+    cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_QuasiMinimalResidual), MatrixCommonSolverType_SparseLib_QuasiMinimalResidual);
+    cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_RichardsonIterativeRefinement), MatrixCommonSolverType_SparseLib_RichardsonIterativeRefinement);
 }
 
 void ProblemDialog::load()
@@ -244,6 +241,8 @@ void ProblemDialog::load()
     txtTransientTimeStep->setValue(m_problemInfo->timeStep);
     txtTransientTimeTotal->setValue(m_problemInfo->timeTotal);
     txtTransientInitialCondition->setValue(m_problemInfo->initialCondition);
+    // matrix solver
+    cmbMatrixCommonSolverType->setCurrentIndex(cmbMatrixCommonSolverType->findData(m_problemInfo->matrixCommonSolverType));
 
     // startup
     txtStartupScript->setPlainText(m_problemInfo->scriptStartup);
@@ -320,6 +319,9 @@ bool ProblemDialog::save()
     m_problemInfo->timeStep = txtTransientTimeStep->value();
     m_problemInfo->timeTotal = txtTransientTimeTotal->value();
     m_problemInfo->initialCondition = txtTransientInitialCondition->value();
+
+    // matrix solver
+    m_problemInfo->matrixCommonSolverType = (MatrixCommonSolverType) cmbMatrixCommonSolverType->itemData(cmbMatrixCommonSolverType->currentIndex()).toInt();
 
     // description
     m_problemInfo->description = txtDescription->toPlainText();

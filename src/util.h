@@ -321,6 +321,21 @@ enum SolverMode
     SolverMode_MeshAndSolve
 };
 
+enum MatrixCommonSolverType
+{
+    MatrixCommonSolverType_Undefined,
+    MatrixCommonSolverType_Umfpack,
+    MatrixCommonSolverType_SuperLU,
+    MatrixCommonSolverType_SparseLib_ConjugateGradient,
+    MatrixCommonSolverType_SparseLib_ConjugateGradientSquared,
+    MatrixCommonSolverType_SparseLib_BiConjugateGradient,
+    MatrixCommonSolverType_SparseLib_BiConjugateGradientStabilized,
+    MatrixCommonSolverType_SparseLib_Chebyshev,
+    MatrixCommonSolverType_SparseLib_GeneralizedMinimumResidual,
+    MatrixCommonSolverType_SparseLib_QuasiMinimalResidual,
+    MatrixCommonSolverType_SparseLib_RichardsonIterativeRefinement
+};
+
 enum ProblemType
 {
     ProblemType_Undefined,
@@ -547,6 +562,7 @@ QString physicFieldBCString(PhysicFieldBC physicFieldBC);
 QString physicFieldVariableCompString(PhysicFieldVariableComp physicFieldVariableComp);
 QString problemTypeString(ProblemType problemType);
 QString adaptivityTypeString(AdaptivityType adaptivityType);
+QString matrixCommonSolverTypeString(MatrixCommonSolverType matrixCommonSolverType);
 
 // keys
 void initLists();
@@ -574,5 +590,8 @@ SceneViewPostprocessorShow sceneViewPostprocessorShowFromStringKey(const QString
 
 QString adaptivityTypeToStringKey(AdaptivityType adaptivityType);
 AdaptivityType adaptivityTypeFromStringKey(const QString &adaptivityType);
+
+QString matrixCommonSolverTypeToStringKey(MatrixCommonSolverType matrixCommonSolverType);
+MatrixCommonSolverType matrixCommonSolverTypeFromStringKey(const QString &matrixCommonSolverType);
 
 #endif // UTIL_H

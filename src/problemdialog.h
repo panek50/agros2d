@@ -31,8 +31,7 @@ class ProblemDialog: public QDialog
 {
     Q_OBJECT
 public:
-    ProblemDialog(ProblemInfo *problemInfo, bool isNewProblem, QWidget *parent = 0);
-    ~ProblemDialog();
+    ProblemDialog(ProblemInfo *problemInfo, bool isNewProblem, QWidget *parent = 0);;
 
     int showDialog();
 
@@ -77,6 +76,9 @@ private:
 
     // equation
     QLabel *lblEquationPixmap;
+
+    // solver
+    QComboBox *cmbMatrixCommonSolverType;
 
     QTabWidget *tabType;
 

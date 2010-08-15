@@ -97,6 +97,9 @@ public:
     Value timeStep;
     Value timeTotal;
     Value initialCondition;
+
+    // matrix solver
+    MatrixCommonSolverType matrixCommonSolverType;
           
     ProblemInfo()
     {
@@ -136,6 +139,9 @@ public:
         timeStep = Value("1.0", false);
         timeTotal = Value("1.0", false);
         initialCondition = Value("0.0", false);
+
+        // solver
+        matrixCommonSolverType = MatrixCommonSolverType_SparseLib_BiConjugateGradient;
     }
     
     inline void setHermes(HermesField *hermes) { if (m_hermes) delete m_hermes; m_hermes = hermes; }

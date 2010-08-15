@@ -55,7 +55,7 @@ scalar general_bc_values(int marker, double x, double y)
 }
 
 template<typename Real, typename Scalar>
-Scalar general_linear_form_surf(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar general_linear_form_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     double derivative = 0.0;
 
@@ -69,7 +69,7 @@ Scalar general_linear_form_surf(int n, double *wt, Func<Real> *v, Geom<Real> *e,
 }
 
 template<typename Real, typename Scalar>
-Scalar general_bilinear_form(int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar general_bilinear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     int marker = e->marker;
 
@@ -80,7 +80,7 @@ Scalar general_bilinear_form(int n, double *wt, Func<Real> *u, Func<Real> *v, Ge
 }
 
 template<typename Real, typename Scalar>
-Scalar general_linear_form(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar general_linear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     int marker = e->marker;
 
@@ -98,9 +98,9 @@ void callbackGeneralSpace(Tuple<Space *> space)
 
 void callbackGeneralWeakForm(WeakForm *wf, Tuple<Solution *> slnArray)
 {
-    wf->add_biform(0, 0, callback(general_bilinear_form));
-    wf->add_liform(0, callback(general_linear_form));
-    wf->add_liform_surf(0, callback(general_linear_form_surf));
+    wf->add_matrix_form(0, 0, callback(general_bilinear_form));
+    wf->add_vector_form(0, callback(general_linear_form));
+    wf->add_vector_form_surf(0, callback(general_linear_form_surf));
 }
 
 // **************************************************************************************************************************

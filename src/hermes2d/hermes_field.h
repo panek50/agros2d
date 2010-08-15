@@ -24,7 +24,7 @@
 
 #include "util.h"
 #include "hermes2d.h"
-#include "solver_umfpack.h"
+#include "solvers.h"
 
 #include "localvalueview.h"
 #include "surfaceintegralview.h"
