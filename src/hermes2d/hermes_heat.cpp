@@ -32,6 +32,7 @@ struct HeatEdge
 struct HeatLabel
 {
     double thermal_conductivity;
+    DataTable thermal_conductivity_nonlinear;
     double volume_heat;
     double density;
     double specific_heat;
@@ -64,8 +65,9 @@ scalar heat_bc_values(int marker, double x, double y)
     }
 }
 
+// linear forms
 template<typename Real, typename Scalar>
-Scalar heat_bilinear_form_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar heat_matrix_form_linear_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     double h = 0.0;
 
@@ -79,7 +81,7 @@ Scalar heat_bilinear_form_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real
 }
 
 template<typename Real, typename Scalar>
-Scalar heat_linear_form_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar heat_vector_form_linear_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (heatEdge[e->marker].type == PhysicFieldBC_None)
         return 0.0;
@@ -102,7 +104,7 @@ Scalar heat_linear_form_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real> 
 }
 
 template<typename Real, typename Scalar>
-Scalar heat_bilinear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar heat_matrix_form_linear(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return heatLabel[e->marker].thermal_conductivity * int_grad_u_grad_v<Real, Scalar>(n, wt, u, v)
@@ -113,16 +115,52 @@ Scalar heat_bilinear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u,
 }
 
 template<typename Real, typename Scalar>
-Scalar heat_linear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar heat_vector_form_linear(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return heatLabel[e->marker].volume_heat * int_v<Real, Scalar>(n, wt, v)
         + ((analysisType == AnalysisType_Transient) ? heatLabel[e->marker].density * heatLabel[e->marker].specific_heat * int_u_v<Real, Scalar>(n, wt, ext->fn[0], v) / timeStep : 0.0);
     else
         return heatLabel[e->marker].volume_heat * 2 * M_PI * int_x_v<Real, Scalar>(n, wt, v, e)
-        + ((analysisType == AnalysisType_Transient) ? heatLabel[e->marker].density * heatLabel[e->marker].specific_heat * 2 * M_PI * int_x_u_v<Real, Scalar>(n, wt, ext->fn[0], v, e) / timeStep : 0.0);
+                + ((analysisType == AnalysisType_Transient) ? heatLabel[e->marker].density * heatLabel[e->marker].specific_heat * 2 * M_PI * int_x_u_v<Real, Scalar>(n, wt, ext->fn[0], v, e) / timeStep : 0.0);
 }
 
+// nonlinear forms
+// Jacobian matrix
+double heat_matrix_form_nonlinear(int n, double *wt, Func<double> *u_ext[], Func<double> *u, Func<double> *v, Geom<double> *e, ExtData<double> *ext)
+{
+    double result = 0;
+    Func<double>* u_prev = u_ext[0];
+    for (int i = 0; i < n; i++)
+        result += wt[i] * (heatLabel[e->marker].thermal_conductivity_nonlinear.derivative(u_prev->val[i]) * u->val[i] * (u_prev->dx[i] * v->dx[i] + u_prev->dy[i] * v->dy[i])
+                           +heatLabel[e->marker].thermal_conductivity_nonlinear.value(u_prev->val[i]) *                  (u->dx[i]      * v->dx[i] + u->dy[i]      * v->dy[i]));
+
+    return result;
+}
+
+// residual vector
+double heat_vector_form_nonlinear(int n, double *wt, Func<double> *u_ext[], Func<double> *v, Geom<double> *e, ExtData<double> *ext)
+{
+    double result = 0;
+    Func<double>* u_prev = u_ext[0];
+    for (int i = 0; i < n; i++)
+        result += wt[i] * (heatLabel[e->marker].thermal_conductivity_nonlinear.value(u_prev->val[i]) * (u_prev->dx[i] * v->dx[i] + u_prev->dy[i] * v->dy[i])
+                           - heatLabel[e->marker].volume_heat * v->val[i]);
+    // - heat_src(e->x[i], e->y[i]) * v->val[i]);
+    return result;
+}
+
+Ord heat_jacobian_ord(int n, double *wt, Func<Ord> *u_ext[], Func<Ord> *u, Func<Ord> *v, Geom<Ord> *e, ExtData<Ord> *ext)
+{
+    return Ord(20);
+}
+
+Ord heat_residual_ord(int n, double *wt, Func<Ord> *u_ext[], Func<Ord> *v, Geom<Ord> *e, ExtData<Ord> *ext)
+{
+    return Ord(20);
+}
+
+// callbacks
 void callbackHeatSpace(Tuple<Space *> space)
 {
     space.at(0)->set_bc_types(heat_bc_types);
@@ -131,13 +169,228 @@ void callbackHeatSpace(Tuple<Space *> space)
 
 void callbackHeatWeakForm(WeakForm *wf, Tuple<Solution *> slnArray)
 {
-    wf->add_matrix_form(0, 0, callback(heat_bilinear_form));
-    if (analysisType == AnalysisType_Transient)
-        wf->add_vector_form(0, callback(heat_linear_form), H2D_ANY, slnArray.at(0));
+    if (Util::scene()->problemInfo()->linearity == Linearity_Linear)
+    {
+        wf->add_matrix_form(0, 0, callback(heat_matrix_form_linear));
+        if (analysisType == AnalysisType_Transient)
+            wf->add_vector_form(0, callback(heat_vector_form_linear), H2D_ANY, slnArray.at(0));
+        else
+            wf->add_vector_form(0, callback(heat_vector_form_linear));
+    }
     else
-        wf->add_vector_form(0, callback(heat_linear_form));
-    wf->add_matrix_form_surf(0, 0, callback(heat_bilinear_form_surf));
-    wf->add_vector_form_surf(0, callback(heat_linear_form_surf));
+    {
+        double temp[] = {
+            1.0,
+            6.0,
+            11.0,
+            16.0,
+            21.0,
+            26.0,
+            31.0,
+            36.0,
+            41.0,
+            46.0,
+            51.0,
+            56.0,
+            61.0,
+            66.0,
+            71.0,
+            76.0,
+            81.0,
+            86.0,
+            91.0,
+            96.0,
+            101.0,
+            106.0,
+            111.0,
+            116.0,
+            121.0,
+            126.0,
+            131.0,
+            136.0,
+            141.0,
+            146.0,
+            151.0,
+            156.0,
+            161.0,
+            166.0,
+            171.0,
+            176.0,
+            181.0,
+            186.0,
+            191.0,
+            196.0,
+            201.0,
+            206.0,
+            211.0,
+            216.0,
+            221.0,
+            226.0,
+            231.0,
+            236.0,
+            241.0,
+            246.0,
+            251.0,
+            256.0,
+            261.0,
+            266.0,
+            271.0,
+            276.0,
+            281.0,
+            286.0,
+            291.0,
+            296.0,
+            301.0,
+            306.0,
+            311.0,
+            316.0,
+            321.0,
+            326.0,
+            331.0,
+            336.0,
+            341.0,
+            346.0,
+            351.0,
+            356.0,
+            361.0,
+            366.0,
+            371.0,
+            376.0,
+            381.0,
+            386.0,
+            391.0,
+            396.0,
+            401.0,
+            406.0,
+            411.0,
+            416.0,
+            421.0,
+            426.0,
+            431.0,
+            436.0,
+            441.0,
+            446.0,
+            451.0,
+            456.0,
+            461.0,
+            466.0,
+            471.0,
+            476.0,
+            481.0,
+            486.0,
+            491.0,
+            496.0,
+            501.0 };
+        double cond[] = {
+            5.0540e+001,
+            2.6791e+002,
+            4.9856e+002,
+            7.0658e+002,
+            8.6654e+002,
+            9.6352e+002,
+            9.9310e+002,
+            9.6135e+002,
+            8.8242e+002,
+            7.9176e+002,
+            7.1324e+002,
+            6.4614e+002,
+            5.8975e+002,
+            5.4335e+002,
+            5.0690e+002,
+            4.8115e+002,
+            4.6132e+002,
+            4.4623e+002,
+            4.3484e+002,
+            4.2625e+002,
+            4.2006e+002,
+            4.1672e+002,
+            4.1364e+002,
+            4.1079e+002,
+            4.0817e+002,
+            4.0576e+002,
+            4.0357e+002,
+            4.0157e+002,
+            3.9977e+002,
+            3.9815e+002,
+            3.9669e+002,
+            3.9540e+002,
+            3.9427e+002,
+            3.9327e+002,
+            3.9241e+002,
+            3.9167e+002,
+            3.9104e+002,
+            3.9052e+002,
+            3.9010e+002,
+            3.8976e+002,
+            3.8950e+002,
+            3.8930e+002,
+            3.8916e+002,
+            3.8907e+002,
+            3.8902e+002,
+            3.8899e+002,
+            3.8899e+002,
+            3.8899e+002,
+            3.8899e+002,
+            3.8899e+002,
+            3.8896e+002,
+            3.8891e+002,
+            3.8882e+002,
+            3.8869e+002,
+            3.8849e+002,
+            3.8823e+002,
+            3.8789e+002,
+            3.8747e+002,
+            3.8696e+002,
+            3.8634e+002,
+            3.8652e+002,
+            3.8640e+002,
+            3.8628e+002,
+            3.8617e+002,
+            3.8606e+002,
+            3.8596e+002,
+            3.8585e+002,
+            3.8576e+002,
+            3.8566e+002,
+            3.8556e+002,
+            3.8547e+002,
+            3.8538e+002,
+            3.8529e+002,
+            3.8520e+002,
+            3.8511e+002,
+            3.8503e+002,
+            3.8494e+002,
+            3.8485e+002,
+            3.8476e+002,
+            3.8467e+002,
+            3.8459e+002,
+            3.8449e+002,
+            3.8440e+002,
+            3.8431e+002,
+            3.8422e+002,
+            3.8412e+002,
+            3.8402e+002,
+            3.8392e+002,
+            3.8382e+002,
+            3.8371e+002,
+            3.8360e+002,
+            3.8349e+002,
+            3.8338e+002,
+            3.8326e+002,
+            3.8314e+002,
+            3.8301e+002,
+            3.8289e+002,
+            3.8275e+002,
+            3.8262e+002,
+            3.8248e+002,
+            3.8234e+002 };
+        heatLabel[0].thermal_conductivity_nonlinear.add(temp, cond, 100);
+
+        wf->add_matrix_form(heat_matrix_form_nonlinear, heat_jacobian_ord);
+        wf->add_vector_form(heat_vector_form_nonlinear, heat_residual_ord);
+    }
+
+    wf->add_matrix_form_surf(0, 0, callback(heat_matrix_form_linear_surf));
+    wf->add_vector_form_surf(0, callback(heat_vector_form_linear_surf));
 }
 
 // *******************************************************************************************************
@@ -478,7 +731,10 @@ LocalPointValueHeat::LocalPointValueHeat(Point &point) : LocalPointValue(point)
 
             SceneLabelHeatMarker *marker = dynamic_cast<SceneLabelHeatMarker *>(labelMarker);
 
-            thermal_conductivity = marker->thermal_conductivity.number;
+            if (Util::scene()->problemInfo()->linearity == Linearity_Linear)
+                thermal_conductivity = marker->thermal_conductivity.number;
+            else
+                thermal_conductivity = marker->thermal_conductivity.number;
             volume_heat = marker->volume_heat.number;
 
             // heat flux

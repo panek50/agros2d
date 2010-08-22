@@ -72,7 +72,8 @@ SOURCES += util.cpp \
     scenemarkerselectdialog.cpp \
     tooltipview.cpp \
     scenebasicselectdialog.cpp \
-    logdialog.cpp
+    logdialog.cpp \
+    datatabledialog.cpp
 HEADERS += util.h \
     scene.h \
     gui.h \
@@ -112,7 +113,8 @@ HEADERS += util.h \
     scenemarkerselectdialog.h \
     tooltipview.h \
     scenebasicselectdialog.h \
-    logdialog.h
+    logdialog.h \
+    datatabledialog.h
 INCLUDEPATH += . \
     dxflib
 OTHER_FILES += python/agros2d.pyx \
@@ -131,6 +133,8 @@ linux-g++ {
     LIBS += -lsuperlu
     LIBS += -lamd
     LIBS += -lblas
+    LIBS += -ldmumps_seq
+    LIBS += -llapack
     LIBS += -lJudy
     LIBS += -lpthread
     LIBS += $$system(python -c "\"from distutils import sysconfig; print '-lpython'+sysconfig.get_config_var('VERSION')\"")

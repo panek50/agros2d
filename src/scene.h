@@ -81,6 +81,9 @@ public:
     QString fileName;
     PhysicField physicField() { return (m_hermes) ? m_hermes->physicField : PhysicField_Undefined; }
     ProblemType problemType;
+    Linearity linearity;
+    int linearityNewtonMaxSteps;
+    double linearityNewtonTolerance;
     int numberOfRefinements;
     int polynomialOrder;
     AdaptivityType adaptivityType;
@@ -142,6 +145,11 @@ public:
 
         // solver
         matrixCommonSolverType = MatrixCommonSolverType_SparseLib_BiConjugateGradient;
+
+        // linearity
+        linearity = Linearity_Linear;
+        linearityNewtonMaxSteps = 100;
+        linearityNewtonTolerance = 1e-6;
     }
     
     inline void setHermes(HermesField *hermes) { if (m_hermes) delete m_hermes; m_hermes = hermes; }

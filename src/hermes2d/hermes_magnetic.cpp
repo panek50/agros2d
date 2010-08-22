@@ -67,7 +67,7 @@ scalar magnetic_bc_values_imag(int marker, double x, double y)
 }
 
 template<typename Real, typename Scalar>
-Scalar magnetic_linear_form_surf_real(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar magnetic_vector_form_linear_surf_real(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     double K = 0.0;
 
@@ -81,7 +81,7 @@ Scalar magnetic_linear_form_surf_real(int n, double *wt, Func<Real> *u_ext[], Fu
 }
 
 template<typename Real, typename Scalar>
-Scalar magnetic_linear_form_surf_imag(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar magnetic_vector_form_linear_surf_imag(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     double K = 0.0;
 
@@ -95,7 +95,7 @@ Scalar magnetic_linear_form_surf_imag(int n, double *wt, Func<Real> *u_ext[], Fu
 }
 
 template<typename Real, typename Scalar>
-Scalar magnetic_bilinear_form_real_real(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar magnetic_matrix_form_linear_real_real(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return 1.0 / (magneticLabel[e->marker].permeability * MU0) * int_grad_u_grad_v<Real, Scalar>(n, wt, u, v) -
@@ -109,7 +109,7 @@ Scalar magnetic_bilinear_form_real_real(int n, double *wt, Func<Real> *u_ext[], 
 }
 
 template<typename Real, typename Scalar>
-Scalar magnetic_bilinear_form_real_imag(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar magnetic_matrix_form_linear_real_imag(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return - 2 * M_PI * frequency * magneticLabel[e->marker].conductivity * int_u_v<Real, Scalar>(n, wt, u, v);
@@ -118,7 +118,7 @@ Scalar magnetic_bilinear_form_real_imag(int n, double *wt, Func<Real> *u_ext[], 
 }
 
 template<typename Real, typename Scalar>
-Scalar magnetic_bilinear_form_imag_real(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar magnetic_matrix_form_linear_imag_real(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return + 2 * M_PI * frequency * magneticLabel[e->marker].conductivity * int_u_v<Real, Scalar>(n, wt, u, v);
@@ -127,7 +127,7 @@ Scalar magnetic_bilinear_form_imag_real(int n, double *wt, Func<Real> *u_ext[], 
 }
 
 template<typename Real, typename Scalar>
-Scalar magnetic_bilinear_form_imag_imag(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar magnetic_matrix_form_linear_imag_imag(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return 1.0 / (magneticLabel[e->marker].permeability * MU0) * int_grad_u_grad_v<Real, Scalar>(n, wt, u, v) -
@@ -138,7 +138,7 @@ Scalar magnetic_bilinear_form_imag_imag(int n, double *wt, Func<Real> *u_ext[], 
 }
 
 template<typename Real, typename Scalar>
-Scalar magnetic_linear_form_real(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar magnetic_vector_form_linear_real(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return magneticLabel[e->marker].current_density_real * int_v<Real, Scalar>(n, wt, v) +
@@ -151,7 +151,7 @@ Scalar magnetic_linear_form_real(int n, double *wt, Func<Real> *u_ext[], Func<Re
 }
 
 template<typename Real, typename Scalar>
-Scalar magnetic_linear_form_imag(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar magnetic_vector_form_linear_imag(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return magneticLabel[e->marker].current_density_imag * int_v<Real, Scalar>(n, wt, v);
@@ -180,23 +180,23 @@ void callbackMagneticWeakForm(WeakForm *wf, Tuple<Solution *> slnArray)
 {
     if (slnArray.size() == 1)
     {
-        wf->add_matrix_form(0, 0, callback(magnetic_bilinear_form_real_real));
+        wf->add_matrix_form(0, 0, callback(magnetic_matrix_form_linear_real_real));
         if (analysisType == AnalysisType_Transient)
-            wf->add_vector_form(0, callback(magnetic_linear_form_real), H2D_ANY, slnArray.at(0));
+            wf->add_vector_form(0, callback(magnetic_vector_form_linear_real), H2D_ANY, slnArray.at(0));
         else
-            wf->add_vector_form(0, callback(magnetic_linear_form_real));
-        wf->add_vector_form_surf(0, callback(magnetic_linear_form_surf_real));
+            wf->add_vector_form(0, callback(magnetic_vector_form_linear_real));
+        wf->add_vector_form_surf(0, callback(magnetic_vector_form_linear_surf_real));
     }
     else
     {
-        wf->add_matrix_form(0, 0, callback(magnetic_bilinear_form_real_real));
-        wf->add_matrix_form(0, 1, callback(magnetic_bilinear_form_real_imag));
-        wf->add_matrix_form(1, 0, callback(magnetic_bilinear_form_imag_real));
-        wf->add_matrix_form(1, 1, callback(magnetic_bilinear_form_imag_imag));
-        wf->add_vector_form(0, callback(magnetic_linear_form_real));
-        wf->add_vector_form(1, callback(magnetic_linear_form_imag));
-        wf->add_vector_form_surf(0, callback(magnetic_linear_form_surf_real));
-        wf->add_vector_form_surf(1, callback(magnetic_linear_form_surf_imag));
+        wf->add_matrix_form(0, 0, callback(magnetic_matrix_form_linear_real_real));
+        wf->add_matrix_form(0, 1, callback(magnetic_matrix_form_linear_real_imag));
+        wf->add_matrix_form(1, 0, callback(magnetic_matrix_form_linear_imag_real));
+        wf->add_matrix_form(1, 1, callback(magnetic_matrix_form_linear_imag_imag));
+        wf->add_vector_form(0, callback(magnetic_vector_form_linear_real));
+        wf->add_vector_form(1, callback(magnetic_vector_form_linear_imag));
+        wf->add_vector_form_surf(0, callback(magnetic_vector_form_linear_surf_real));
+        wf->add_vector_form_surf(1, callback(magnetic_vector_form_linear_surf_imag));
     }
 }
 

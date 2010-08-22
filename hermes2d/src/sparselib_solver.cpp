@@ -103,18 +103,16 @@ bool CommonSolverSparseLib::_solve(Matrix *mat, double *res)
         _error("SparseLib++ error. Method is not defined.");
     }
 
+    printf("SparseLib++ solver: maxiter: %i, tol: %e\n", maxiter, tolerance);
+    /*
     if (result == 0)
-        printf("SparseLib++ solver: maxiter: %i, tol: %e\n", maxiter, tolerance);
+        ; // printf("SparseLib++ solver: maxiter: %i, tol: %e\n", maxiter, tolerance);
     else
         _error("SparseLib++ error.");
-
-    double *x = new double[size];
+    */
 
     for (int i = 0 ; i < xv.size() ; i++)
-        x[i] = xv(i);
-
-    memcpy(res, x, size*sizeof(double));
-    delete[] x;
+        res[i] = xv(i);
 
     if (!dynamic_cast<CSCMatrix*>(mat))
         delete Acsc;

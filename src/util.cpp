@@ -176,6 +176,7 @@ void initLists()
     matrixCommonSolverTypeList.insert(MatrixCommonSolverType_Undefined, "");
     matrixCommonSolverTypeList.insert(MatrixCommonSolverType_Umfpack, "umfpack");
     matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SuperLU, "superlu");
+    matrixCommonSolverTypeList.insert(MatrixCommonSolverType_MUMPS, "mumps");
     matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SparseLib_ConjugateGradient, "sparselib_cg");
     matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SparseLib_ConjugateGradientSquared, "sparselib_cgs");
     matrixCommonSolverTypeList.insert(MatrixCommonSolverType_SparseLib_BiConjugateGradient, "sparselib_bicg");
@@ -632,6 +633,11 @@ QString problemTypeString(ProblemType problemType)
     return ((problemType == ProblemType_Planar) ? QObject::tr("Planar") : QObject::tr("Axisymmetric"));
 }
 
+QString linearityString(Linearity linearity)
+{
+    return ((linearity == Linearity_Linear) ? QObject::tr("Linear") : QObject::tr("Nonlinear"));
+}
+
 QString adaptivityTypeString(AdaptivityType adaptivityType)
 {
     switch (adaptivityType)
@@ -660,6 +666,8 @@ QString matrixCommonSolverTypeString(MatrixCommonSolverType matrixSolverType)
         return QObject::tr("UMFPACK");
     case MatrixCommonSolverType_SuperLU:
         return QObject::tr("SuperLU");
+    case MatrixCommonSolverType_MUMPS:
+        return QObject::tr("MUMPS");
     case MatrixCommonSolverType_SparseLib_ConjugateGradient:
         return QObject::tr("SparseLib++ CG");
     case MatrixCommonSolverType_SparseLib_ConjugateGradientSquared:

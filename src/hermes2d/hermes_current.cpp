@@ -54,7 +54,7 @@ scalar current_bc_values(int marker, double x, double y)
 }
 
 template<typename Real, typename Scalar>
-Scalar current_linear_form_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar current_vector_form_linear_surf(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     double J = 0.0;
 
@@ -68,7 +68,7 @@ Scalar current_linear_form_surf(int n, double *wt, Func<Real> *u_ext[], Func<Rea
 }
 
 template<typename Real, typename Scalar>
-Scalar current_bilinear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar current_matrix_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     if (isPlanar)
         return currentLabel[e->marker].conductivity * int_grad_u_grad_v<Real, Scalar>(n, wt, u, v);
@@ -77,7 +77,7 @@ Scalar current_bilinear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> 
 }
 
 template<typename Real, typename Scalar>
-Scalar current_linear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar current_vector_form_linear(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     return 0.0;
 }
@@ -90,9 +90,9 @@ void callbackCurrentSpace(Tuple<Space *> space)
 
 void callbackCurrentWeakForm(WeakForm *wf, Tuple<Solution *> slnArray)
 {
-    wf->add_matrix_form(0, 0, callback(current_bilinear_form));
-    wf->add_vector_form(0, callback(current_linear_form));
-    wf->add_vector_form_surf(0, callback(current_linear_form_surf));
+    wf->add_matrix_form(0, 0, callback(current_matrix_form));
+    wf->add_vector_form(0, callback(current_vector_form_linear));
+    wf->add_vector_form_surf(0, callback(current_vector_form_linear_surf));
 }
 
 // *******************************************************************************************************

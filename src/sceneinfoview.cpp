@@ -181,6 +181,15 @@ void SceneInfoView::doInvalidated()
     // analysis
     QTreeWidgetItem *itemAnalysisType = new QTreeWidgetItem(problemInfoGeneralNode);
     itemAnalysisType->setText(0, tr("Analysis: ") + analysisTypeString(Util::scene()->problemInfo()->analysisType));
+    // linearity
+    QTreeWidgetItem *itemLinearity = new QTreeWidgetItem(problemInfoGeneralNode);
+    itemLinearity->setText(0, tr("Linearity: ") + linearityString(Util::scene()->problemInfo()->linearity));
+    // solver
+    QTreeWidgetItem *itemMatrixCommonSolver = new QTreeWidgetItem(problemInfoGeneralNode);
+    itemMatrixCommonSolver->setText(0, tr("Matrix solver: ") + matrixCommonSolverTypeString(Util::scene()->problemInfo()->matrixCommonSolverType));
+    // adaptivity
+    QTreeWidgetItem *itemAdaptivity = new QTreeWidgetItem(problemInfoGeneralNode);
+    itemAdaptivity->setText(0, tr("Adaptivity: ") + adaptivityTypeString(Util::scene()->problemInfo()->adaptivityType));
 
     // solver
     if (Util::scene()->sceneSolution()->isMeshed())

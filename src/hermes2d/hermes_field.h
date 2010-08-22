@@ -24,6 +24,7 @@
 
 #include "util.h"
 #include "hermes2d.h"
+#include "data_table.h"
 #include "solvers.h"
 
 #include "localvalueview.h"

@@ -75,6 +75,9 @@ private slots:
     void doFullScreen();
     void doApplicationLog();
 
+    // FIX
+    void doDataTable();
+
     void doCut();
     void doCopy();
     void doPaste();
@@ -151,6 +154,9 @@ private:
     QAction *actCheckVersion;
     QAction *actAbout;
     QAction *actAboutQt;
+
+    // FIX
+    QAction *actDataTable;
 
     QLabel *lblProblemType;
     QLabel *lblPhysicField;

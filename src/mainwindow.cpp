@@ -18,6 +18,7 @@
 // Email: agros2d@googlegroups.com, home page: http://hpfem.org/agros2d/
 
 #include "mainwindow.h"
+#include "datatabledialog.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
@@ -268,6 +269,11 @@ void MainWindow::createActions()
     actApplicationLog = new QAction(icon("log"), tr("Application &log"), this);
     actApplicationLog->setStatusTip(tr("Show application log"));
     connect(actApplicationLog, SIGNAL(triggered()), this, SLOT(doApplicationLog()));
+
+    // FIX
+    actDataTable = new QAction(icon(""), tr("Table"), this);
+    actDataTable->setStatusTip(tr("Show table dialog"));
+    connect(actDataTable, SIGNAL(triggered()), this, SLOT(doDataTable()));
 }
 
 void MainWindow::createMenus()
@@ -429,6 +435,8 @@ void MainWindow::createToolBars()
     tlbTools->hide();
     tlbTools->addAction(actChart);
     tlbTools->addAction(actScriptEditor);
+    tlbTools->addSeparator();
+    tlbTools->addAction(actDataTable);
     tlbTools->addSeparator();
     tlbTools->addAction(Util::scene()->actProblemProperties);
     tlbTools->addAction(sceneView->actSceneViewProperties);
@@ -606,7 +614,7 @@ void MainWindow::doDocumentOpen(const QString &fileName)
 
     if (QFile::exists(fileNameDocument))
     {
-    QFileInfo fileInfo(fileNameDocument);
+        QFileInfo fileInfo(fileNameDocument);
         if (fileInfo.suffix() == "a2d")
         {
             // a2d data file
@@ -636,7 +644,7 @@ void MainWindow::doDocumentOpen(const QString &fileName)
     }
     else
     {
-         QMessageBox::critical(this, tr("File open"), tr("File '%1' is not found.").arg(fileNameDocument));
+        QMessageBox::critical(this, tr("File open"), tr("File '%1' is not found.").arg(fileNameDocument));
     }
 }
 
@@ -986,4 +994,72 @@ void MainWindow::doProgressLog()
 void MainWindow::doApplicationLog()
 {
     logDialog->loadApplicationLog();
+}
+
+/*
+#include <stdio.h>
+
+#include "mpi.h"
+#include "dmumps_c.h"
+#define JOB_INIT -1
+#define JOB_END -2
+#define USE_COMM_WORLD -987654
+*/
+
+void MainWindow::doDataTable()
+{
+    DataTableDialog *dataTableDialog = new DataTableDialog();
+    dataTableDialog->exec();
+    delete dataTableDialog;
+
+    /*
+     Example program using the C interface to the
+    * double precision version of MUMPS, dmumps_c.
+    * We solve the system A x = RHS with
+    * A = diag(1 2) and RHS = [1 4]ˆT
+    * Solution is [1 2]ˆT
+    */
+
+    /*
+    int argc = 1;
+    char *name = "mumps";
+    char **argv ;
+
+    DMUMPS_STRUC_C id;
+    int n = 2;
+    int nz = 2;
+    int irn[] = {1,2};
+    int jcn[] = {1,2};
+    double a[2];
+    double rhs[2];
+
+    int myid, ierr;
+    argv = &name;
+
+    ierr = MPI_Init(&argc, &argv);
+    ierr = MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+    // Define A and rhs
+    rhs[0]=1.0;rhs[1]=4.0;
+    a[0]=1.0;a[1]=2.0;
+
+    // Initialize a MUMPS instance. Use MPI_COMM_WORLD
+    id.job=JOB_INIT; id.par=1; id.sym=0;id.comm_fortran=USE_COMM_WORLD;
+    dmumps_c(&id);
+    // Define the problem on the host
+    if (myid == 0) {
+        id.n = n; id.nz =nz; id.irn=irn; id.jcn=jcn;
+        id.a = a; id.rhs = rhs;
+    }
+#define ICNTL(I) icntl[(I)-1] /* macro s.t. indices match documentation
+    // No outputs
+    id.ICNTL(1)=-1; id.ICNTL(2)=-1; id.ICNTL(3)=-1; id.ICNTL(4)=0;
+    // Call the MUMPS package.
+    id.job=6;
+    dmumps_c(&id);
+    id.job=JOB_END; dmumps_c(&id); // Terminate instance
+    if (myid == 0) {
+        printf("Solution is : (%8.2f  %8.2f)\n", rhs[0],rhs[1]);
+    }
+    ierr = MPI_Finalize();
+    */
 }

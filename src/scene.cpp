@@ -1137,7 +1137,11 @@ ErrorResult Scene::readFromFile(const QString &fileName)
     // name
     m_problemInfo->name = eleProblem.toElement().attribute("name");
     // problem type                                                                                                                                                                                                                             `
-    m_problemInfo->problemType = problemTypeFromStringKey(eleProblem.toElement().attribute("problemtype"));
+    m_problemInfo->problemType = problemTypeFromStringKey(eleProblem.toElement().attribute("problemtype", problemTypeToStringKey(ProblemType_Planar)));
+    // problem linearity                                                                                                                                                                                                                             `
+    m_problemInfo->linearity = linearityFromStringKey(eleProblem.toElement().attribute("linearity", linearityToStringKey(Linearity_Linear)));
+    m_problemInfo->linearityNewtonMaxSteps = eleProblem.toElement().attribute("linearitynewtonmaxsteps").toInt();
+    m_problemInfo->linearityNewtonTolerance = eleProblem.toElement().attribute("linearitynewtontolerance").toDouble();
     // analysis type
     m_problemInfo->analysisType = analysisTypeFromStringKey(eleProblem.toElement().attribute("analysistype", analysisTypeToStringKey(AnalysisType_SteadyState)));
     // physic field
@@ -1160,7 +1164,7 @@ ErrorResult Scene::readFromFile(const QString &fileName)
     m_problemInfo->initialCondition.text = eleProblem.toElement().attribute("initialcondition", "0");
 
     // solver
-    m_problemInfo->matrixCommonSolverType = matrixCommonSolverTypeFromStringKey(eleProblem.toElement().attribute("matrixsolver", "sparselib_gmres"));
+    m_problemInfo->matrixCommonSolverType = matrixCommonSolverTypeFromStringKey(eleProblem.toElement().attribute("matrixsolver", matrixCommonSolverTypeToStringKey(MatrixCommonSolverType_SparseLib_GeneralizedMinimumResidual)));
 
     // startup script
     QDomNode eleScriptStartup = eleProblem.toElement().elementsByTagName("scriptstartup").at(0);
@@ -1335,8 +1339,12 @@ ErrorResult Scene::writeToFile(const QString &fileName)
     eleProblem.setAttribute("id", 0);
     // name
     eleProblem.setAttribute("name", m_problemInfo->name);
-    // problem type                                                                          
-    eleProblem.toElement().setAttribute("problemtype", problemTypeToStringKey(m_problemInfo->problemType));
+    // problem type
+    eleProblem.setAttribute("problemtype", problemTypeToStringKey(m_problemInfo->problemType));
+    // problem linearity
+    eleProblem.setAttribute("linearity", linearityToStringKey(m_problemInfo->linearity));
+    eleProblem.setAttribute("linearitynewtonmaxsteps", m_problemInfo->linearityNewtonMaxSteps);
+    eleProblem.setAttribute("linearitynewtontolerance", m_problemInfo->linearityNewtonTolerance);
     // analysis type
     eleProblem.setAttribute("analysistype", analysisTypeToStringKey(m_problemInfo->analysisType));
     // type

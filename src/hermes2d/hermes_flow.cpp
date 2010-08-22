@@ -90,14 +90,14 @@ scalar flow_bc_values_pressure(int marker, double x, double y)
 }
 
 template<typename Real, typename Scalar>
-Scalar bilinear_form_sym_0_0_1_1(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar matrix_form_linear_sym_0_0_1_1(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     return flowLabel[e->marker].dynamic_viscosity / flowLabel[e->marker].density * (int_grad_u_grad_v<Real, Scalar>(n, wt, u, v) +
             ((analysisType == AnalysisType_Transient) ? int_u_v<Real, Scalar>(n, wt, u, v) / timeStep : 0.0));
 }
 
 template<typename Real, typename Scalar>
-Scalar bilinear_form_unsym_0_0_1_1(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar matrix_form_linear_unsym_0_0_1_1(int n, double *wt, Func<Real> *u_ext[], Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     Func<Scalar>* xvel_prev = ext->fn[0];
     Func<Scalar>* yvel_prev = ext->fn[1];
@@ -105,7 +105,7 @@ Scalar bilinear_form_unsym_0_0_1_1(int n, double *wt, Func<Real> *u_ext[], Func<
 }
 
 template<typename Real, typename Scalar>
-Scalar linear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar vector_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     // this form is used with both velocity components
     Func<Scalar>* vel_prev = ext->fn[0];
@@ -113,13 +113,13 @@ Scalar linear_form(int n, double *wt, Func<Real> *u_ext[], Func<Real> *v, Geom<R
 }
 
 template<typename Real, typename Scalar>
-Scalar bilinear_form_unsym_0_2(int n, double *wt, Func<Real> *u_ext[], Func<Real> *p, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar matrix_form_linear_unsym_0_2(int n, double *wt, Func<Real> *u_ext[], Func<Real> *p, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     return - int_u_dvdx<Real, Scalar>(n, wt, p, v);
 }
 
 template<typename Real, typename Scalar>
-Scalar bilinear_form_unsym_1_2(int n, double *wt, Func<Real> *u_ext[], Func<Real> *p, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+Scalar matrix_form_linear_unsym_1_2(int n, double *wt, Func<Real> *u_ext[], Func<Real> *p, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
     return - int_u_dvdy<Real, Scalar>(n, wt, p, v);
 }
@@ -140,27 +140,27 @@ void callbackFlowWeakForm(WeakForm *wf, Tuple<Solution *> slnArray)
 {
     // FIX
     /*
-    wf->add_matrix_form(0, 0, callback(bilinear_form_sym_0_0_1_1), H2D_SYM, H2D_ANY);
+    wf->add_matrix_form(0, 0, callback(matrix_form_linear_sym_0_0_1_1), H2D_SYM, H2D_ANY);
     if (analysisType == AnalysisType_Transient)
-        wf->add_matrix_form(0, 0, callback(bilinear_form_unsym_0_0_1_1), H2D_UNSYM, H2D_ANY, slnArray);
+        wf->add_matrix_form(0, 0, callback(matrix_form_linear_unsym_0_0_1_1), H2D_UNSYM, H2D_ANY, slnArray);
     else
-        wf->add_matrix_form(0, 0, callback(bilinear_form_unsym_0_0_1_1), H2D_UNSYM);
-    wf->add_matrix_form(1, 1, callback(bilinear_form_sym_0_0_1_1), H2D_SYM);
+        wf->add_matrix_form(0, 0, callback(matrix_form_linear_unsym_0_0_1_1), H2D_UNSYM);
+    wf->add_matrix_form(1, 1, callback(matrix_form_linear_sym_0_0_1_1), H2D_SYM);
     if (analysisType == AnalysisType_Transient)
-        wf->add_matrix_form(1, 1, callback(bilinear_form_unsym_0_0_1_1), H2D_UNSYM, H2D_ANY, slnArray);
+        wf->add_matrix_form(1, 1, callback(matrix_form_linear_unsym_0_0_1_1), H2D_UNSYM, H2D_ANY, slnArray);
     else
-        wf->add_matrix_form(1, 1, callback(bilinear_form_unsym_0_0_1_1), H2D_UNSYM);
-    wf->add_matrix_form(0, 2, callback(bilinear_form_unsym_0_2), H2D_ANTISYM);
-    wf->add_matrix_form(1, 2, callback(bilinear_form_unsym_1_2), H2D_ANTISYM);
+        wf->add_matrix_form(1, 1, callback(matrix_form_linear_unsym_0_0_1_1), H2D_UNSYM);
+    wf->add_matrix_form(0, 2, callback(matrix_form_linear_unsym_0_2), H2D_ANTISYM);
+    wf->add_matrix_form(1, 2, callback(matrix_form_linear_unsym_1_2), H2D_ANTISYM);
     if (analysisType == AnalysisType_Transient)
     {
-        wf->add_vector_form(0, callback(linear_form), H2D_ANY, slnArray);
-        wf->add_vector_form(1, callback(linear_form), H2D_ANY, slnArray);
+        wf->add_vector_form(0, callback(vector_form), H2D_ANY, slnArray);
+        wf->add_vector_form(1, callback(vector_form), H2D_ANY, slnArray);
     }
     else
     {
-        wf->add_vector_form(0, callback(linear_form));
-        wf->add_vector_form(1, callback(linear_form));
+        wf->add_vector_form(0, callback(vector_form));
+        wf->add_vector_form(1, callback(vector_form));
     }
     */
 }

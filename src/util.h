@@ -326,6 +326,7 @@ enum MatrixCommonSolverType
     MatrixCommonSolverType_Undefined,
     MatrixCommonSolverType_Umfpack,
     MatrixCommonSolverType_SuperLU,
+    MatrixCommonSolverType_MUMPS,
     MatrixCommonSolverType_SparseLib_ConjugateGradient,
     MatrixCommonSolverType_SparseLib_ConjugateGradientSquared,
     MatrixCommonSolverType_SparseLib_BiConjugateGradient,
@@ -341,6 +342,13 @@ enum ProblemType
     ProblemType_Undefined,
     ProblemType_Planar,
     ProblemType_Axisymmetric
+};
+
+enum Linearity
+{
+    Linearity_Undefined,
+    Linearity_Linear,
+    Linearity_Nonlinear
 };
 
 enum AnalysisType
@@ -561,6 +569,7 @@ QString analysisTypeString(AnalysisType analysisType);
 QString physicFieldBCString(PhysicFieldBC physicFieldBC);
 QString physicFieldVariableCompString(PhysicFieldVariableComp physicFieldVariableComp);
 QString problemTypeString(ProblemType problemType);
+QString linearityString(Linearity problemLinearity);
 QString adaptivityTypeString(AdaptivityType adaptivityType);
 QString matrixCommonSolverTypeString(MatrixCommonSolverType matrixCommonSolverType);
 
@@ -572,6 +581,9 @@ PhysicField physicFieldFromStringKey(const QString &physicField);
 
 inline QString problemTypeToStringKey(ProblemType problemType) { return ((problemType == ProblemType_Planar) ? "planar" : "axisymmetric"); }
 inline ProblemType problemTypeFromStringKey(const QString &problemType) { if (problemType == "planar") return ProblemType_Planar; else if (problemType == "axisymmetric") return ProblemType_Axisymmetric; else return ProblemType_Undefined; }
+
+inline QString linearityToStringKey(Linearity linearity) { return ((linearity == Linearity_Linear) ? "linear" : "nonlinear"); }
+inline Linearity linearityFromStringKey(const QString &linearity) { if (linearity == "linear") return Linearity_Linear; else if (linearity == "nonlinear") return Linearity_Nonlinear; else return Linearity_Undefined; }
 
 QString analysisTypeToStringKey(AnalysisType analysisType);
 AnalysisType analysisTypeFromStringKey(const QString &analysisType);

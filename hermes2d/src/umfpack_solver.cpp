@@ -37,7 +37,7 @@ void print_status(int status)
 
 bool CommonSolverUmfpack::_solve(Matrix *mat, double *res)
 {
-    printf("UMFPACK solver\n");
+    // printf("UMFPACK solver\n");
 
     CSCMatrix *Acsc = NULL;
 
@@ -70,8 +70,7 @@ bool CommonSolverUmfpack::_solve(Matrix *mat, double *res)
 
     umfpack_di_free_symbolic(&symbolic);
 
-    double *x;
-    x = (double*) malloc(size * sizeof(double));
+    double *x = new double[size];
 
     /* solve system */
     int status_solve = umfpack_di_solve(UMFPACK_A,
@@ -85,7 +84,9 @@ bool CommonSolverUmfpack::_solve(Matrix *mat, double *res)
     if (symbolic) umfpack_di_free_symbolic(&symbolic);
     if (numeric) umfpack_di_free_numeric(&numeric);
 
-    memcpy(res, x, size*sizeof(double));
+    for (int i = 0; i < size; i++)
+        res[i] = x[i];
+
     delete[] x;
 
     if (!dynamic_cast<CSCMatrix*>(mat))

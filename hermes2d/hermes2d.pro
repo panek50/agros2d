@@ -55,12 +55,12 @@ SOURCES += src/compat/fmemopen.cpp \
         src/transform.cpp \
         src/traverse.cpp \
         src/shapeset.cpp \
-        src/shapeset_hc_gradeigen.cpp \
-        src/shapeset_hc_legendre.cpp \
+        # src/shapeset_hc_gradeigen.cpp \
+        # src/shapeset_hc_legendre.cpp \
+        # src/shapeset_l2_legendre.cpp \
+        # src/shapeset_hc_gradleg.cpp \
+        # src/shapeset_hd_legendre.cpp \
         src/shapeset_h1_ortho.cpp \
-        src/shapeset_l2_legendre.cpp \
-        src/shapeset_hc_gradleg.cpp \
-        src/shapeset_hd_legendre.cpp \
         src/shapeset_h1_jacobi.cpp \
         src/shapeset_h1_quad.cpp \
         src/precalc.cpp \
@@ -91,7 +91,6 @@ SOURCES += src/compat/fmemopen.cpp \
         src/ref_selectors/proj_based_selector.cpp \
         src/ref_selectors/selector.cpp \
         src/adapt.cpp \
-        src/common_time_period.cpp \
         src/matrix.cpp \
         src/matrix_old.cpp \
         src/hermes2d.cpp \
@@ -101,6 +100,7 @@ SOURCES += src/compat/fmemopen.cpp \
         src/umfpack_solver.cpp \
         src/superlu_solver.cpp \
         src/sparselib_solver.cpp \
+        src/mumps_solver.cpp \
         src/precond_ml.cpp \
         src/precond_ifpack.cpp \
         src/forms.cpp \
@@ -117,7 +117,9 @@ SOURCES += src/compat/fmemopen.cpp \
         src/views/vector_view.cpp \
         src/views/view.cpp \
         src/views/view_data.cpp \
-        src/views/view_support.cpp
+        src/views/view_support.cpp \
+        src/common_time_period.cpp \
+        src/data_table.cpp
 
 HEADERS = += src/common.h
 
@@ -127,6 +129,8 @@ linux-g++ {
     LIBS += -lumfpack
     LIBS += -lamd
     LIBS += -lblas
+    LIBS += -ldmumps_seq
+    LIBS += -llapack
 }
 win32-g++ {
     INCLUDEPATH += c:/qt/mingw/include

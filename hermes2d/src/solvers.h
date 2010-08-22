@@ -149,6 +149,19 @@ inline void solve_linear_system_superlu(Matrix *mat, double *res)
     solver._solve(mat, res);
 }
 
+// c++ mumps - optional
+class CommonSolverMumps : public CommonSolver
+{
+public:
+    bool _solve(Matrix *mat, double *res);
+    bool _solve(Matrix *mat, cplx *res);
+};
+inline void solve_linear_system_mumps(Matrix *mat, double *res)
+{
+    CommonSolverMumps solver;
+    solver._solve(mat, res);
+}
+
 // python numpy - optional
 class CommonSolverNumPy : public CommonSolver
 {

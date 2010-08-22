@@ -11,7 +11,7 @@
 
 bool CommonSolverSuperLU::_solve(Matrix *mat, double *res)
 {
-    printf("SuperLU solver\n");
+    // printf("SuperLU solver\n");
 
     int size = mat->get_size();
     int nnz = 0;

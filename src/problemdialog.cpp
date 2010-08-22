@@ -102,8 +102,17 @@ QWidget *ProblemDialog::createControlsGeneral()
     connect(cmbAdaptivityType, SIGNAL(currentIndexChanged(int)), this, SLOT(doAdaptivityChanged(int)));
     connect(cmbAnalysisType, SIGNAL(currentIndexChanged(int)), this, SLOT(doAnalysisTypeChanged(int)));
 
-    // solver matrix type
+    // matrix solver type
     cmbMatrixCommonSolverType = new QComboBox();
+
+    // linearity
+    cmbLinearity = new QComboBox();
+    txtLinearityTolerance = new SLineEditDouble();
+    txtLinearityMaxSteps = new QSpinBox();
+    txtLinearityMaxSteps->setMinimum(1);
+    txtLinearityMaxSteps->setMaximum(1000);
+
+    connect(cmbLinearity, SIGNAL(currentIndexChanged(int)), this, SLOT(doLinearityChanged(int)));
 
     // fill combo boxes
     fillComboBox();
@@ -132,18 +141,24 @@ QWidget *ProblemDialog::createControlsGeneral()
     // right
     layoutProblemTable->addWidget(new QLabel(tr("Matrix solver:")), 2, 2);
     layoutProblemTable->addWidget(cmbMatrixCommonSolverType, 2, 3);
-    layoutProblemTable->addWidget(new QLabel(tr("Type of analysis:")), 3, 2);
-    layoutProblemTable->addWidget(cmbAnalysisType, 3, 3);
-    layoutProblemTable->addWidget(new QLabel(tr("Frequency (Hz):")), 4, 2);
-    layoutProblemTable->addWidget(txtFrequency, 4, 3);
-    layoutProblemTable->addWidget(new QLabel(tr("Time step (s):")), 5, 2);
-    layoutProblemTable->addWidget(txtTransientTimeStep, 5, 3);
-    layoutProblemTable->addWidget(new QLabel(tr("Total time (s):")), 6, 2);
-    layoutProblemTable->addWidget(txtTransientTimeTotal, 6, 3);
-    layoutProblemTable->addWidget(new QLabel(tr("Initial condition:")), 7, 2);
-    layoutProblemTable->addWidget(txtTransientInitialCondition, 7, 3);
-    layoutProblemTable->addWidget(new QLabel(tr("Steps:")), 8, 2);
-    layoutProblemTable->addWidget(lblTransientSteps, 8, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Linearity:")), 3, 2);
+    layoutProblemTable->addWidget(cmbLinearity, 3, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Newton tolerance:")), 4, 2);
+    layoutProblemTable->addWidget(txtLinearityTolerance, 4, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Newton max. steps:")), 5, 2);
+    layoutProblemTable->addWidget(txtLinearityMaxSteps, 5, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Type of analysis:")), 6, 2);
+    layoutProblemTable->addWidget(cmbAnalysisType, 6, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Frequency (Hz):")), 7, 2);
+    layoutProblemTable->addWidget(txtFrequency, 7, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Time step (s):")), 8, 2);
+    layoutProblemTable->addWidget(txtTransientTimeStep, 8, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Total time (s):")), 9, 2);
+    layoutProblemTable->addWidget(txtTransientTimeTotal, 9, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Initial condition:")), 10, 2);
+    layoutProblemTable->addWidget(txtTransientInitialCondition, 10, 3);
+    layoutProblemTable->addWidget(new QLabel(tr("Steps:")), 11, 2);
+    layoutProblemTable->addWidget(lblTransientSteps, 11, 3);
 
     // equation
     QHBoxLayout *layoutEquation = new QHBoxLayout();
@@ -212,6 +227,7 @@ void ProblemDialog::fillComboBox()
     // matrix solver
     cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_Umfpack), MatrixCommonSolverType_Umfpack);
     cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SuperLU), MatrixCommonSolverType_SuperLU);
+    cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_MUMPS), MatrixCommonSolverType_MUMPS);
     cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_ConjugateGradient), MatrixCommonSolverType_SparseLib_ConjugateGradient);
     cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_ConjugateGradientSquared), MatrixCommonSolverType_SparseLib_ConjugateGradientSquared);
     cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_BiConjugateGradient), MatrixCommonSolverType_SparseLib_BiConjugateGradient);
@@ -220,6 +236,10 @@ void ProblemDialog::fillComboBox()
     cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_GeneralizedMinimumResidual), MatrixCommonSolverType_SparseLib_GeneralizedMinimumResidual);
     cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_QuasiMinimalResidual), MatrixCommonSolverType_SparseLib_QuasiMinimalResidual);
     cmbMatrixCommonSolverType->addItem(matrixCommonSolverTypeString(MatrixCommonSolverType_SparseLib_RichardsonIterativeRefinement), MatrixCommonSolverType_SparseLib_RichardsonIterativeRefinement);
+
+    // linearity
+    cmbLinearity->addItem(linearityString(Linearity_Linear), Linearity_Linear);
+    cmbLinearity->addItem(linearityString(Linearity_Nonlinear), Linearity_Nonlinear);
 }
 
 void ProblemDialog::load()
@@ -243,6 +263,10 @@ void ProblemDialog::load()
     txtTransientInitialCondition->setValue(m_problemInfo->initialCondition);
     // matrix solver
     cmbMatrixCommonSolverType->setCurrentIndex(cmbMatrixCommonSolverType->findData(m_problemInfo->matrixCommonSolverType));
+    // linearity
+    cmbLinearity->setCurrentIndex(cmbLinearity->findData(m_problemInfo->linearity));
+    txtLinearityMaxSteps->setValue(m_problemInfo->linearityNewtonMaxSteps);
+    txtLinearityTolerance->setValue(m_problemInfo->linearityNewtonTolerance);
 
     // startup
     txtStartupScript->setPlainText(m_problemInfo->scriptStartup);
@@ -252,6 +276,7 @@ void ProblemDialog::load()
 
     doAnalysisTypeChanged(cmbAnalysisType->currentIndex());
     doTransientChanged();
+    doLinearityChanged(cmbLinearity->currentIndex());
 }
 
 bool ProblemDialog::save()
@@ -323,6 +348,11 @@ bool ProblemDialog::save()
     // matrix solver
     m_problemInfo->matrixCommonSolverType = (MatrixCommonSolverType) cmbMatrixCommonSolverType->itemData(cmbMatrixCommonSolverType->currentIndex()).toInt();
 
+    // linearity
+    m_problemInfo->linearity = (Linearity) cmbLinearity->itemData(cmbLinearity->currentIndex()).toInt();
+    m_problemInfo->linearityNewtonMaxSteps = txtLinearityMaxSteps->value();
+    m_problemInfo->linearityNewtonTolerance = txtLinearityTolerance->value();
+
     // description
     m_problemInfo->description = txtDescription->toPlainText();
 
@@ -376,6 +406,12 @@ void ProblemDialog::doAnalysisTypeChanged(int index)
     txtFrequency->setEnabled((AnalysisType) cmbAnalysisType->itemData(index).toInt() == AnalysisType_Harmonic);
 
     doShowEquation();
+}
+
+void ProblemDialog::doLinearityChanged(int index)
+{
+    txtLinearityMaxSteps->setEnabled((Linearity) cmbLinearity->itemData(index).toInt() == Linearity_Nonlinear);
+    txtLinearityTolerance->setEnabled((Linearity) cmbLinearity->itemData(index).toInt() == Linearity_Nonlinear);
 }
 
 void ProblemDialog::doTransientChanged()

@@ -109,6 +109,11 @@ CommonSolver *commonSolver()
             solver = new CommonSolverSuperLU();
             break;
         }
+    case MatrixCommonSolverType_MUMPS:
+        {
+            solver = new CommonSolverMumps();
+            break;
+        }
     case MatrixCommonSolverType_SparseLib_ConjugateGradient:
         {
             CommonSolverSparseLib *solverSparse = new CommonSolverSparseLib();
@@ -210,6 +215,10 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
     analysisType = Util::scene()->problemInfo()->analysisType;
     frequency = Util::scene()->problemInfo()->frequency;
 
+    Linearity linearity = Util::scene()->problemInfo()->linearity;
+    double linearityNewtonTolerance = Util::scene()->problemInfo()->linearityNewtonTolerance;
+    int linearityNewtonMaxSteps = Util::scene()->problemInfo()->linearityNewtonMaxSteps;
+
     // solution agros array
     QList<SolutionArray *> *solutionArrayList = new QList<SolutionArray *>();
 
@@ -249,8 +258,6 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
     cbSpace(space);
 
     int ndof = get_num_dofs(space);
-    info("ndof = %d", ndof);
-
     if (analysisType == AnalysisType_Transient)
     {
         for (int i = 0; i < numberOfSolution; i++)
@@ -285,9 +292,13 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
         break;
     }
 
-    // initialize the linear problem.
-    LinearProblem lp(&wf, space);
-    //info("ndof = %d", lp.get_num_dofs());
+    // initialize the linear and descrete problem
+    LinearProblem *lp = NULL;
+    DiscreteProblem *dp = NULL;
+    if (linearity == Linearity_Linear)
+        lp = new LinearProblem(&wf, space);
+    else
+        dp = new DiscreteProblem(&wf, space);
 
     // initialize the linear solver
     CommonSolver *solver = commonSolver();
@@ -318,21 +329,86 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
     for (int i = 0; i<maxAdaptivitySteps; i++)
     {
         // assemble stiffness matrix and rhs.
-        lp.assemble(mat, rhs, false);
-        if (lp.get_num_dofs() == 0)
+        if (linearity == Linearity_Linear)
         {
-            progressItemSolve->emitMessage(QObject::tr("Solver: DOF is zero"), true);
-            isError = true;
-            break;
-        }
+            lp->assemble(mat, rhs, false);
+            if (lp->get_num_dofs() == 0)
+            {
+                progressItemSolve->emitMessage(QObject::tr("Solver: DOF is zero"), true);
+                isError = true;
+                break;
+            }
 
-        // solve the matrix problem.
-        if (!solver->solve(mat, rhs))
+            // solve the matrix problem.
+            if (!solver->solve(mat, rhs))
+            {
+                progressItemSolve->emitMessage(QObject::tr("Matrix solver failed."), true);
+                isError = true;
+                delete solver;
+                break;
+            }
+        }
+        else
         {
-            progressItemSolve->emitMessage(QObject::tr("Matrix solver failed."), true);
-            isError = true;
-            delete solver;
-            break;
+            // Newton loop
+            int it = 0;
+
+            // initial solution for Newton's method
+            Solution *initSolution = new Solution();
+            initSolution->set_const(mesh, 0.0);
+
+            Vector *coeff = new AVector(ndof);
+
+            // Project to obtain the initial coefficient vector for the Newton's method.
+            // The empty solution Tuple means that we do not want the resulting Solution, just the vector
+            project_global(space, H2D_H1_NORM, initSolution, Tuple<Solution *>(), coeff);
+
+            while (1)
+            {
+                dp->assemble(coeff, mat, NULL, rhs, false);
+
+                // multiply the residual vector with -1 since the matrix
+                // equation reads J(Y^n) \deltaY^{n+1} = -F(Y^n).
+                for (int i = 0; i < dp->get_num_dofs(); i++)
+                    rhs->set(i, -rhs->get(i));
+
+                // calculate the l2-norm of residual vector.
+                double l2Norm = 0;
+                for (int i = 0; i < rhs->get_size(); i++)
+                    l2Norm += rhs->get(i)*rhs->get(i);
+                l2Norm = sqrt(l2Norm);
+
+                // emit signal
+                progressItemSolve->emitMessage(QObject::tr("Newton iteration: %1, L2 norm: %2").
+                                               arg(it+1).
+                                               arg(l2Norm, 0, 'e', 5), false, 1);
+
+                // if l2 norm of the residual vector is in tolerance, quit.
+                if (l2Norm < linearityNewtonTolerance || it > linearityNewtonMaxSteps)
+                    break;
+
+                // solve the matrix problem.
+                if (!solver->solve(mat, rhs))
+                {
+                    progressItemSolve->emitMessage(QObject::tr("Matrix solver failed."), true);
+                    isError = true;
+                    delete solver;
+                    break;
+                }
+
+                // Add \delta Y^{n+1} to Y^n.
+                for (int i = 0; i < ndof; i++)
+                    coeff->add(i, rhs->get(i));
+
+                it++;
+            }
+
+            // replace rhs
+            for (int i = 0; i < ndof; i++)
+                rhs->set(i, coeff->get(i));
+
+            delete coeff;
+            delete initSolution;
         }
 
         // convert coefficient vector into a solution.
@@ -343,41 +419,41 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
         if (adaptivityType != AdaptivityType_None)
         {
             // construct globally refined reference meshes and setup reference space(s).
-            Tuple<Space *> space_ref;
+            Tuple<Space *> spaceRef;
             for (int i = 0; i < numberOfSolution; i++)
             {
-                Mesh *mesh_ref = new Mesh();
-                mesh_ref->copy(space[i]->get_mesh());
-                mesh_ref->refine_all_elements();
+                Mesh *meshRef = new Mesh();
+                meshRef->copy(space[i]->get_mesh());
+                meshRef->refine_all_elements();
 
-                space_ref.push_back(space[i]->dup(mesh_ref));
+                spaceRef.push_back(space[i]->dup(meshRef));
 
                 // increase order by 1
-                space_ref[i]->copy_orders(space[i], 1);
+                spaceRef[i]->copy_orders(space[i], 1);
             }
 
             // solve ref system
-            CooMatrix mat_ref(ndof);
-            AVector rhs_ref(ndof);
-            CommonSolver *solver_ref = commonSolver();
+            CooMatrix matRef(ndof);
+            AVector rhsRef(ndof);
+            CommonSolver *solverRef = commonSolver();
 
-            LinearProblem lp_ref(&wf, space_ref);
+            LinearProblem lpRef(&wf, spaceRef);
 
             // assemble ref stiffness matrix and rhs.
-            lp_ref.assemble(&mat_ref, &rhs_ref, false);
+            lpRef.assemble(&matRef, &rhsRef, false);
 
             // solve the matrix problem.
-            if (!solver_ref->solve(&mat_ref, &rhs_ref))
+            if (!solverRef->solve(&matRef, &rhsRef))
             {
                 progressItemSolve->emitMessage(QObject::tr("Matrix solver for reference solution failed."), true);
                 isError = true;
-                delete solver_ref;
+                delete solverRef;
                 break;
             }
 
             // convert coefficient vector into a solution.
             for (int i = 0; i < solutionReference.size(); i++)
-                solutionReference[i]->set_fe_solution(space_ref[i], &rhs_ref);
+                solutionReference[i]->set_fe_solution(spaceRef[i], &rhsRef);
 
             // project the reference solution on the coarse mesh.
             // if (verbose) info("Projecting reference solution on coarse mesh.");
@@ -395,7 +471,7 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
             progressItemSolve->addAdaptivityError(error, get_num_dofs(space));
 
             // delete ref solver
-            delete solver_ref;
+            delete solverRef;
 
             if (progressItemSolve->isCanceled())
             {
@@ -429,11 +505,11 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
             if (timesteps > 1)
             {
                 // transient - assemble stiffness matrix and rhs.
-                lp.assemble(mat, rhs, true);
+                lp->assemble(mat, rhs, true);
 
-                if (lp.get_num_dofs() == 0)
+                if (lp->get_num_dofs() == 0)
                 {
-                    progressItemSolve->emitMessage(QObject::tr("Solver: DOF is zero"), true);
+                    progressItemSolve->emitMessage(QObject::tr("Number of DOFs is zero"), true);
                     isError = true;
                     break;
                 }
@@ -452,7 +528,7 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
             }
             else if (n > 0)
             {
-                lp.assemble(mat, rhs, false);
+                lp->assemble(mat, rhs, false);
             }
 
             // output
@@ -479,6 +555,9 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
     delete rhs;
     delete mat;
     delete solver;
+
+    if (lp) delete lp;
+    if (dp) delete dp;
 
     // delete space
     for (int i = 0; i < space.size(); i++)
