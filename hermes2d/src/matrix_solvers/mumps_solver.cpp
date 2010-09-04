@@ -3,9 +3,10 @@
 // file for the exact terms).
 // Email: hermes1d@googlegroups.com, home page: http://hpfem.org/
 
-#include "matrix.h"
-#include "solvers.h"
+#include "../matrix.h"
+#include "../solvers.h"
 
+#ifdef COMMON_WITH_MUMPS
 #include "mpi.h"
 #include "dmumps_c.h"
 
@@ -108,3 +109,17 @@ bool CommonSolverMumps::_solve(Matrix *mat, cplx *res)
 {
     _error("CommonSolverMumps::solve(Matrix *mat, cplx *res) not implemented.");
 }
+
+#else
+
+bool CommonSolverMumps::_solve(Matrix *mat, double *res)
+{
+    _error("CommonSolverMumps::solve(Matrix *mat, double *res) not implemented.");
+}
+
+bool CommonSolverMumps::_solve(Matrix *mat, cplx *res)
+{
+    _error("CommonSolverMumps::solve(Matrix *mat, cplx *res) not implemented.");
+}
+
+#endif

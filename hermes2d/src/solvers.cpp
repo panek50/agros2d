@@ -19,7 +19,7 @@ bool CommonSolver::solve(Matrix *mat, Vector *res)
 // x... comes as right-hand side, leaves as solution
 bool CommonSolverCG::_solve(Matrix* A, double *x, double tol, int maxiter)
 {
-    printf("CG solver\n");
+    // printf("CG solver\n");
 
     int n_dof = A->get_size();
     double *r = new double[n_dof];
@@ -66,8 +66,7 @@ bool CommonSolverCG::_solve(Matrix* A, double *x, double tol, int maxiter)
     if (p != NULL) delete [] p;
     if (help_vec != NULL) delete [] help_vec;
 
-    printf("CG solver: maxiter: %i, tol: %e\n",
-           iter_current, tol_current);
+    // printf("CG solver: maxiter: %i, tol: %e\n", iter_current, tol_current);
 
     return flag;
 }
@@ -82,7 +81,7 @@ bool CommonSolverCG::_solve(Matrix* A, cplx *x)
 
 bool CommonSolverDenseLU::_solve(Matrix* A, double *x)
 {
-    printf("DenseLU solver\n");
+    // printf("DenseLU solver\n");
 
     DenseMatrix *Aden = NULL;
 

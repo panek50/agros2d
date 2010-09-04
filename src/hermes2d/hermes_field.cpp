@@ -198,7 +198,7 @@ SolutionArray *solutionArray(Solution *sln, Space *space = NULL, double adaptive
     return solution;
 }
 
-QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
+    QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
                                           void (*cbSpace)(Tuple<Space *>),
                                           void (*cbWeakForm)(WeakForm *, Tuple<Solution *>))
 {
@@ -303,7 +303,7 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
     // initialize the linear solver
     CommonSolver *solver = commonSolver();
 
-    CooMatrix *mat = new CooMatrix(ndof);
+    Matrix *mat = new CooMatrix(ndof);
     Vector *rhs = new AVector(ndof);
 
     // assemble the stiffness matrix and solve the system
@@ -331,7 +331,11 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
         // assemble stiffness matrix and rhs.
         if (linearity == Linearity_Linear)
         {
+            QTime time;
+            time.start();
             lp->assemble(mat, rhs, false);
+            qDebug() << "solveSolutioArray: LinearProblem::assemble: " << milisecondsToTime(time.elapsed()).toString("mm:ss.zzz");
+
             if (lp->get_num_dofs() == 0)
             {
                 progressItemSolve->emitMessage(QObject::tr("Solver: DOF is zero"), true);
@@ -340,6 +344,7 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
             }
 
             // solve the matrix problem.
+            time.start();
             if (!solver->solve(mat, rhs))
             {
                 progressItemSolve->emitMessage(QObject::tr("Matrix solver failed."), true);
@@ -347,6 +352,7 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
                 delete solver;
                 break;
             }
+            qDebug() << "solveSolutioArray: CommonSolver::solve: " << milisecondsToTime(time.elapsed()).toString("mm:ss.zzz");
         }
         else
         {
@@ -505,7 +511,10 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
             if (timesteps > 1)
             {
                 // transient - assemble stiffness matrix and rhs.
+                QTime time;
+                time.start();
                 lp->assemble(mat, rhs, true);
+                qDebug() << "solveSolutioArray: LinearProblem::assemble"; time.elapsed();
 
                 if (lp->get_num_dofs() == 0)
                 {
@@ -586,22 +595,8 @@ QList<SolutionArray *> *solveSolutioArray(ProgressItemSolve *progressItemSolve,
 
 // *********************************************************************************************************************************************
 
-ViewScalarFilter::ViewScalarFilter(MeshFunction *sln1, PhysicFieldVariable physicFieldVariable, PhysicFieldVariableComp physicFieldVariableComp)
-    : Filter(sln1)
-{
-    m_physicFieldVariable = physicFieldVariable;
-    m_physicFieldVariableComp = physicFieldVariableComp;
-}
-
-ViewScalarFilter::ViewScalarFilter(MeshFunction *sln1, MeshFunction *sln2, PhysicFieldVariable physicFieldVariable, PhysicFieldVariableComp physicFieldVariableComp)
-    : Filter(sln1, sln2)
-{
-    m_physicFieldVariable = physicFieldVariable;
-    m_physicFieldVariableComp = physicFieldVariableComp;
-}
-
-ViewScalarFilter::ViewScalarFilter(MeshFunction *sln1, MeshFunction *sln2, MeshFunction *sln3, PhysicFieldVariable physicFieldVariable, PhysicFieldVariableComp physicFieldVariableComp)
-    : Filter(sln1, sln2, sln3)
+ViewScalarFilter::ViewScalarFilter(Tuple<MeshFunction *> sln, PhysicFieldVariable physicFieldVariable, PhysicFieldVariableComp physicFieldVariableComp)
+    : Filter(sln)
 {
     m_physicFieldVariable = physicFieldVariable;
     m_physicFieldVariableComp = physicFieldVariableComp;

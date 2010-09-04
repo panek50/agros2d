@@ -1,6 +1,6 @@
 <document>
     <problems>
-        <problem adaptivitytolerance="1" frequency="0" numberofrefinements="0" adaptivitytype="disabled" analysistype="steadystate" adaptivitysteps="1" polynomialorder="3" problemtype="planar" timetotal="0" type="heat" timestep="0" id="0" name="Heat Transfer Planar Building" initialcondition="0">
+        <problem linearitynewtontolerance="0" matrixsolver="mumps" adaptivitytolerance="1" id="0" analysistype="steadystate" initialcondition="0" adaptivitysteps="1" linearitynewtonmaxsteps="1" linearity="linear" name="Heat Transfer Planar Building" polynomialorder="3" timestep="0" problemtype="planar" adaptivitytype="disabled" numberofrefinements="0" frequency="0" type="heat" timetotal="0">
             <scriptstartup></scriptstartup>
             <description>This model is an example.</description>
             <edges>
@@ -305,28 +305,28 @@
             <edge end="46" marker="1" id="152" start="129" angle="0"/>
         </edges>
         <labels>
-            <label x="2.60229662423907" y="8.772136137244051" marker="1" id="0" area="0"/>
-            <label x="8.350498063087992" y="7.302573325954621" marker="1" id="1" area="0"/>
-            <label x="8.701632540121748" y="3.362064194798008" marker="1" id="2" area="0"/>
-            <label x="6.360736026563364" y="0.9171278361925841" marker="1" id="3" area="0"/>
-            <label x="0.4824847814056443" y="0.2278638627559487" marker="1" id="4" area="0"/>
-            <label x="6.35024" y="8.40949" marker="2" id="5" area="0"/>
-            <label x="0.252761" y="6.28254" marker="1" id="6" area="0"/>
-            <label x="2.61573" y="0.2565497" marker="2" id="7" area="0"/>
-            <label x="7.31501" y="1.53849" marker="2" id="8" area="0"/>
-            <label x="3.278555617044825" y="7.016463752075263" marker="0" id="9" area="0"/>
-            <label x="9.884804805728066" y="7.528404243358596" marker="3" id="10" area="0"/>
-            <label x="5.770574822193527" y="9.033610334895622" marker="3" id="11" area="0"/>
-            <label x="-0.05253458771444455" y="2.060809813687511" marker="3" id="12" area="0"/>
-            <label x="3.94956834532374" y="-0.05795056262682225" marker="3" id="13" area="0"/>
-            <label x="8.396349382032835" y="1.249926212875853" marker="3" id="14" area="0"/>
-            <label x="0.250676" y="6.91877" marker="2" id="15" area="0"/>
-            <label x="0.2443" y="3.36089" marker="2" id="16" area="0"/>
-            <label x="-0.03625" y="5.70092" marker="3" id="17" area="0"/>
-            <label x="11.2914" y="3.34563" marker="1" id="18" area="0"/>
-            <label x="11.2601" y="3.04267" marker="3" id="19" area="0"/>
-            <label x="10.44235469556485" y="3.347950341218581" marker="2" id="20" area="0"/>
-            <label x="12.32616228093383" y="3.347950341218581" marker="2" id="21" area="0"/>
+            <label x="2.60229662423907" y="8.772136137244051" polynomialorder="0" marker="1" id="0" area="0"/>
+            <label x="8.350498063087992" y="7.302573325954621" polynomialorder="0" marker="1" id="1" area="0"/>
+            <label x="8.701632540121748" y="3.362064194798008" polynomialorder="0" marker="1" id="2" area="0"/>
+            <label x="6.360736026563364" y="0.9171278361925841" polynomialorder="0" marker="1" id="3" area="0"/>
+            <label x="0.4824847814056443" y="0.2278638627559487" polynomialorder="0" marker="1" id="4" area="0"/>
+            <label x="6.35024" y="8.40949" polynomialorder="0" marker="2" id="5" area="0"/>
+            <label x="0.252761" y="6.28254" polynomialorder="0" marker="1" id="6" area="0"/>
+            <label x="2.61573" y="0.2565497" polynomialorder="0" marker="2" id="7" area="0"/>
+            <label x="7.31501" y="1.53849" polynomialorder="0" marker="2" id="8" area="0"/>
+            <label x="3.278555617044825" y="7.016463752075263" polynomialorder="0" marker="0" id="9" area="0"/>
+            <label x="9.884804805728066" y="7.528404243358596" polynomialorder="0" marker="3" id="10" area="0"/>
+            <label x="5.770574822193527" y="9.033610334895622" polynomialorder="0" marker="3" id="11" area="0"/>
+            <label x="-0.05253458771444455" y="2.060809813687511" polynomialorder="0" marker="3" id="12" area="0"/>
+            <label x="3.94956834532374" y="-0.05795056262682225" polynomialorder="0" marker="3" id="13" area="0"/>
+            <label x="8.396349382032835" y="1.249926212875853" polynomialorder="0" marker="3" id="14" area="0"/>
+            <label x="0.250676" y="6.91877" polynomialorder="0" marker="2" id="15" area="0"/>
+            <label x="0.2443" y="3.36089" polynomialorder="0" marker="2" id="16" area="0"/>
+            <label x="-0.03625" y="5.70092" polynomialorder="0" marker="3" id="17" area="0"/>
+            <label x="11.2914" y="3.34563" polynomialorder="0" marker="1" id="18" area="0"/>
+            <label x="11.2601" y="3.04267" polynomialorder="0" marker="3" id="19" area="0"/>
+            <label x="10.44235469556485" y="3.347950341218581" polynomialorder="0" marker="2" id="20" area="0"/>
+            <label x="12.32616228093383" y="3.347950341218581" polynomialorder="0" marker="2" id="21" area="0"/>
         </labels>
     </geometry>
     <functions/>

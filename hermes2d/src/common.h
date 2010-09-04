@@ -79,6 +79,12 @@ enum ElementMode { // element modes
   H2D_MODE_QUAD = 1
 };
 
+// default projection norm is H1 norm
+// FIXME: this global variable should be declared here but 
+// doing so leads to compilation problems. That's why it 
+// is temporarily in linsystem.cpp.
+//const int H2D_DEFAULT_PROJ_NORM = 1;
+
 const int H2D_ANY = -1234;
 
 // how many bits the order number takes
@@ -91,6 +97,8 @@ const int H2D_DEFAULT_PROJ_TYPE = 1;
 #define H2D_GET_H_ORDER(order) ((order) & H2D_ORDER_MASK)
 #define H2D_GET_V_ORDER(order) ((order) >> H2D_ORDER_BITS)
 extern H2D_API const std::string get_quad_order_str(const int quad_order); ///< Returns string representation of the quad order: used for debugging purposses.
+
+extern H2D_API int make_edge_order(int edge, int encoded_order, int mode); ///< Returns the correct axial order for given edge.
 
 #include "scalar.h"
 

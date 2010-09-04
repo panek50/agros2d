@@ -436,8 +436,8 @@ void MainWindow::createToolBars()
     tlbTools->addAction(actChart);
     tlbTools->addAction(actScriptEditor);
     tlbTools->addSeparator();
-    tlbTools->addAction(actDataTable);
-    tlbTools->addSeparator();
+    // tlbTools->addAction(actDataTable);
+    // tlbTools->addSeparator();
     tlbTools->addAction(Util::scene()->actProblemProperties);
     tlbTools->addAction(sceneView->actSceneViewProperties);
 

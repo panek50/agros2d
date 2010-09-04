@@ -768,7 +768,7 @@ ViewScalarFilter *HermesMagnetic::viewScalarFilter(PhysicFieldVariable physicFie
 
     if (Util::scene()->problemInfo()->analysisType == AnalysisType_SteadyState)
     {
-        return new ViewScalarFilterMagnetic(sln1,
+        return new ViewScalarFilterMagnetic(Tuple<MeshFunction *>(sln1),
                                             physicFieldVariable,
                                             physicFieldVariableComp);
     }
@@ -776,8 +776,7 @@ ViewScalarFilter *HermesMagnetic::viewScalarFilter(PhysicFieldVariable physicFie
     if (Util::scene()->problemInfo()->analysisType == AnalysisType_Harmonic)
     {
         Solution *sln2 = Util::scene()->sceneSolution()->sln(Util::scene()->sceneSolution()->timeStep() * Util::scene()->problemInfo()->hermes()->numberOfSolution() + 1);
-        return new ViewScalarFilterMagnetic(sln1,
-                                            sln2,
+        return new ViewScalarFilterMagnetic(Tuple<MeshFunction *>(sln1, sln2),
                                             physicFieldVariable,
                                             physicFieldVariableComp);
     }
@@ -789,8 +788,7 @@ ViewScalarFilter *HermesMagnetic::viewScalarFilter(PhysicFieldVariable physicFie
         else
             sln2 = sln1;
 
-        return new ViewScalarFilterMagnetic(sln1,
-                                            sln2,
+        return new ViewScalarFilterMagnetic(Tuple<MeshFunction *>(sln1, sln2),
                                             physicFieldVariable,
                                             physicFieldVariableComp);
     }

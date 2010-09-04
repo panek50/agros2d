@@ -49,7 +49,7 @@ public:
     Matrix() {}
     virtual ~Matrix() {}
 
-    inline virtual void init() { this->complex = false; free_data(); }
+    inline virtual void init(bool is_complex = false) { this->complex = is_complex; free_data(); }
     virtual void free_data() = 0;
 
     virtual void set_zero() = 0;

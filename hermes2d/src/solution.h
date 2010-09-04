@@ -46,6 +46,8 @@ public:
 
   virtual void set_quad_2d(Quad2D* quad_2d);
   virtual void set_active_element(Element* e);
+  
+  virtual int get_edge_fn_order(int edge) { return ScalarFunction::get_edge_fn_order(edge); }
 
   Mesh*   get_mesh() const { return mesh; }
   RefMap* get_refmap() { update_refmap(); return refmap; }
@@ -86,8 +88,10 @@ class H2D_API Solution : public MeshFunction
 {
 public:
 
+  void init();
   Solution();
   Solution(Mesh *mesh);
+  Solution(Mesh *mesh, ExactFunction exactfn);
   Solution (Space* s, Vector* vec);
   virtual ~Solution();
   virtual void free();
@@ -107,8 +111,11 @@ public:
   void set_zero(Mesh* mesh);
   void set_zero_2(Mesh* mesh); // two-component (Hcurl) zero
 
+  virtual int get_edge_fn_order(int edge) { return MeshFunction::get_edge_fn_order(edge); }
+  int get_edge_fn_order(int edge, Space* space, Element* e = NULL);
+  
   /// Sets solution equal to Dirichlet lift only, solution vector = 0
-  void set_dirichlet_lift(Space* space, PrecalcShapeset* pss);
+  void set_dirichlet_lift(Space* space, PrecalcShapeset* pss = NULL);
 
   /// Enables or disables transformation of the solution derivatives (H1 case)
   /// or values (vector (Hcurl) case). This means H2D_FN_DX_0 and H2D_FN_DY_0 or

@@ -47,20 +47,19 @@ Space::~Space()
 void Space::free()
 {
   free_extra_data();
-  if (nsize) { ::free(ndata); nsize = 0; }
-  if (esize) { ::free(edata); esize = 0; }
+  if (nsize) { ::free(ndata); ndata=NULL; }
+  if (esize) { ::free(edata); edata=NULL; }
 }
-
 
 //// element orders ///////////////////////////////////////////////////////////////////////////////
 
 void Space::resize_tables()
 {
-  if (nsize < mesh->get_max_node_id())
+  if ((nsize < mesh->get_max_node_id()) || (ndata == NULL))
   {
     //HACK: definition of allocated size and the result number of elements
     nsize = mesh->get_max_node_id();
-    if (nsize > ndata_allocated)
+    if ((nsize > ndata_allocated) || (ndata == NULL))
     {
       int prev_allocated = ndata_allocated;
       if (ndata_allocated == 0)
@@ -73,7 +72,7 @@ void Space::resize_tables()
     }
   }
 
-  if (esize < mesh->get_max_element_id())
+  if ((esize < mesh->get_max_element_id()) || (edata == NULL))
   {
     int oldsize = esize;
     if (!esize) esize = 1024;
@@ -106,14 +105,15 @@ void Space::set_element_order(int id, int order)
 // just sets the element order without enumerating dof
 void Space::set_element_order_internal(int id, int order)
 {
-  assert_msg(mesh->get_element(id)->is_triangle() || H2D_GET_V_ORDER(order) != 0, "Element #%d is quad but given vertical order is zero", id);
+  //NOTE: We need to take into account that L2 and Hcurl may use zero orders. The latter has its own version of this method, however.
+  assert_msg(mesh->get_element(id)->is_triangle() || get_type() == 3 || H2D_GET_V_ORDER(order) != 0, "Element #%d is quad but given vertical order is zero", id);
   assert_msg(mesh->get_element(id)->is_quad() || H2D_GET_V_ORDER(order) == 0, "Element #%d is triangle but vertical is not zero", id);
   if (id < 0 || id >= mesh->get_max_element_id())
     error("Invalid element id.");
   H2D_CHECK_ORDER(order);
 
   resize_tables();
-  if (mesh->get_element(id)->is_quad() && H2D_GET_V_ORDER(order) == 0) //FIXME: Hcurl uses zero orders
+  if (mesh->get_element(id)->is_quad() && get_type() != 3 && H2D_GET_V_ORDER(order) == 0) 
      order = H2D_MAKE_QUAD_ORDER(order, order);
   edata[id].order = order;
   seq++;
@@ -122,7 +122,13 @@ void Space::set_element_order_internal(int id, int order)
 
 int Space::get_element_order(int id) const
 {
-  if (id >= esize) return 0;
+  // sanity checks (for internal purposes)
+  if (this->mesh == NULL) error("NULL Mesh pointer detected in Space::get_element_order().");
+  if(edata == NULL) error("NULL edata detected in Space::get_element_order().");
+  if (id >= esize) {
+    warn("Element index %d in Space::get_element_order() while maximum is %d.", id, esize);
+    error("Wring element index in Space::get_element_order().");
+  }
   return edata[id].order;
 }
 
@@ -176,7 +182,7 @@ void Space::set_element_orders(int* elem_orders_)
 
 void Space::set_default_order(int tri_order, int quad_order)
 {
-  if (quad_order == 0) quad_order = H2D_MAKE_QUAD_ORDER(tri_order, tri_order);
+  if (quad_order == -1) quad_order = H2D_MAKE_QUAD_ORDER(tri_order, tri_order);
   default_tri_order = tri_order;
   default_quad_order = quad_order;
 }
@@ -203,8 +209,9 @@ void Space::copy_orders(Space* space, int inc)
     if (oo < 0) error("Source space has an uninitialized order (element id = %d)", e->id);
 
     int mo = shapeset->get_max_order();
-    int ho = std::max(1, std::min(H2D_GET_H_ORDER(oo) + inc, mo));
-    int vo = std::max(1, std::min(H2D_GET_V_ORDER(oo) + inc, mo));
+    int lower_limit = (get_type() == 3 || get_type() == 1) ? 0 : 1; // L2 and Hcurl may use zero orders.
+    int ho = std::max(lower_limit, std::min(H2D_GET_H_ORDER(oo) + inc, mo));
+    int vo = std::max(lower_limit, std::min(H2D_GET_V_ORDER(oo) + inc, mo));
     oo = e->is_triangle() ? ho : H2D_MAKE_QUAD_ORDER(ho, vo);
 
     H2D_CHECK_ORDER(oo);
@@ -303,8 +310,6 @@ void Space::distribute_orders(Mesh* mesh, int* parents)
 
 int Space::assign_dofs(int first_dof, int stride)
 {
-  //warn("Deprecated function used. Please update your code to use assign_dofs(Space *s) or assign_dofs(int n, Space *s1, Space *s2, ..., Space *sn).");
-
   if (first_dof < 0) error("Invalid first_dof.");
   if (stride < 1)    error("Invalid stride.");
 
@@ -344,6 +349,7 @@ int Space::assign_dofs(int first_dof, int stride)
   mesh_seq = mesh->get_seq();
   was_assigned = true;
   this->ndof = (next_dof - first_dof) / stride;
+
   return this->ndof;
 }
 
@@ -620,10 +626,6 @@ H2D_API int assign_dofs(Tuple<Space*> spaces)
   }
 
   return ndof;
-}
-
-H2D_API int assign_dofs(Space *s) {
-  return assign_dofs(Tuple<Space*>(s));
 }
 
 // updating time-dependent essential BC

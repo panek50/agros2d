@@ -3,8 +3,8 @@
 // file for the exact terms).
 // Email: hermes1d@googlegroups.com, home page: http://hpfem.org/
 
-#include "matrix.h"
-#include "solvers.h"
+#include "../matrix.h"
+#include "../solvers.h"
 
 #include <coord_double.h>
 #include <compcol_double.h>
@@ -103,21 +103,13 @@ bool CommonSolverSparseLib::_solve(Matrix *mat, double *res)
         _error("SparseLib++ error. Method is not defined.");
     }
 
-    printf("SparseLib++ solver: maxiter: %i, tol: %e\n", maxiter, tolerance);
-    /*
-    if (result == 0)
-        ; // printf("SparseLib++ solver: maxiter: %i, tol: %e\n", maxiter, tolerance);
-    else
-        _error("SparseLib++ error.");
-    */
-
     for (int i = 0 ; i < xv.size() ; i++)
         res[i] = xv(i);
 
     if (!dynamic_cast<CSCMatrix*>(mat))
         delete Acsc;
 
-    return true;
+    return (result == 0);
 }
 
 bool CommonSolverSparseLib::_solve(Matrix *mat, cplx *res)

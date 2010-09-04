@@ -137,7 +137,7 @@ public:
   void set_uniform_order_internal(int order, int marker = H2D_ANY);
   /// Sets the order automatically assigned to all newly created elements.
   /// (The order of these is normally undefined and has to be set explicitly.)
-  void set_default_order(int tri_order, int quad_order = 0);
+  void set_default_order(int tri_order, int quad_order = -1);
 
   /// Copies element orders from another space. 'inc' is an optional order
   /// increase. If the source space has a coarser mesh, the orders are distributed
@@ -252,7 +252,7 @@ protected: //debugging support
   /// tables with FEM-related information. The first one, 'ndata', contains DOF numbers
   /// and other things for each node. The second table, 'edata', holds element orders
   /// and bubble DOF numbers. Both tables are directly indexed by the node and element
-  /// id's. The function resize_tables() is called to check whether the tables are large
+  /// IDs. The function resize_tables() is called to check whether the tables are large
   /// enough to contain all node and element id's, and to reallocate them if not.
   virtual void resize_tables();
 
@@ -306,8 +306,7 @@ public:
 };
 
 // new way of enumerating degrees of freedom
-extern H2D_API int assign_dofs(Tuple<Space*> spaces);  // multiple spaces
-extern H2D_API int assign_dofs(Space* s);    // one space
+extern H2D_API int assign_dofs(Tuple<Space*> spaces);
 
 // updating time-dependent essential (Dirichlet) boundary conditions
 extern H2D_API void update_essential_bc_values(Tuple<Space*> spaces);  // multiple spaces

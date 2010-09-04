@@ -84,7 +84,25 @@ inline void solve_linear_system_umfpack(Matrix *mat, cplx *res)
     solver._solve(mat, res);
 }
 
-// c++ sparselib - optional
+// c++ mumps - optional
+class CommonSolverMumps : public CommonSolver
+{
+public:
+    bool _solve(Matrix *mat, double *res);
+    bool _solve(Matrix *mat, cplx *res);
+};
+inline void solve_linear_system_mumps(Matrix *mat, double *res)
+{
+    CommonSolverMumps solver;
+    solver._solve(mat, res);
+}
+inline void solve_linear_system_mumps(Matrix *mat, cplx *res)
+{
+    CommonSolverMumps solver;
+    solver._solve(mat, res);
+}
+
+// c++ sparselib
 class CommonSolverSparseLib : public CommonSolver
 {
 public:
@@ -104,14 +122,14 @@ public:
     {
         tolerance = 1e-8;
         maxiter = 1000;
-        method = CommonSolverSparseLibSolver_BiConjugateGradient;
+        method = CommonSolverSparseLibSolver_ConjugateGradientSquared;
     }
 
     bool _solve(Matrix *mat, double *res);
     bool _solve(Matrix *mat, cplx *res);
     inline void set_tolerance(double tolerance) { this->tolerance = tolerance; }
     inline void set_maxiter(int maxiter) { this->maxiter = maxiter; }
-    inline void set_method(CommonSolverSparseLib::CommonSolverSparseLibSolver method) { this->method = method; }
+    inline void set_method(CommonSolverSparseLibSolver method) { this->method = method; }
 
 private:
     double tolerance;
@@ -121,7 +139,7 @@ private:
 inline void solve_linear_system_sparselib_cgs(Matrix *mat, double *res, double tolerance = 1e-8, int maxiter = 1000)
 {
     CommonSolverSparseLib solver;
-    solver.set_method(CommonSolverSparseLib::CommonSolverSparseLibSolver_BiConjugateGradient);
+    solver.set_method(CommonSolverSparseLib::CommonSolverSparseLibSolver_ConjugateGradientSquared);
     solver.set_tolerance(tolerance);
     solver.set_maxiter(maxiter);
     solver._solve(mat, res);
@@ -149,77 +167,64 @@ inline void solve_linear_system_superlu(Matrix *mat, double *res)
     solver._solve(mat, res);
 }
 
-// c++ mumps - optional
-class CommonSolverMumps : public CommonSolver
+// python - optional
+class CommonSolverPython : public CommonSolver
 {
 public:
-    bool _solve(Matrix *mat, double *res);
-    bool _solve(Matrix *mat, cplx *res);
-};
-inline void solve_linear_system_mumps(Matrix *mat, double *res)
-{
-    CommonSolverMumps solver;
-    solver._solve(mat, res);
-}
+    enum CommonSolverPythonSolver
+    {
+        CommonSolverPythonSolver_Numpy,
+        CommonSolverPythonSolver_ScipyUmfpack,
+        CommonSolverPythonSolver_ScipyCG,
+        CommonSolverPythonSolver_ScipyGMRES
+    };
 
-// python numpy - optional
-class CommonSolverNumPy : public CommonSolver
-{
-public:
+    CommonSolverPython()
+    {
+        method = CommonSolverPythonSolver_ScipyUmfpack;
+    }
+
     bool _solve(Matrix *mat, double *res);
     bool _solve(Matrix *mat, cplx *res);
+
+    bool _solveNumpy(Matrix *mat, double *res);
+    bool _solveNumpy(Matrix *mat, cplx *res);
+    bool _solveScipyUmfpack(Matrix *mat, double *res);
+    bool _solveScipyUmfpack(Matrix *mat, cplx *res);
+    bool _solveScipyCG(Matrix *mat, double *res);
+    bool _solveScipyGMRES(Matrix *mat, double *res);
+private:
+    CommonSolverPythonSolver method;
 };
 inline void solve_linear_system_numpy(Matrix *mat, double *res)
 {
-    CommonSolverNumPy solver;
+    CommonSolverPython solver;
     solver._solve(mat, res);
 }
 inline void solve_linear_system_numpy(Matrix *mat, cplx *res)
 {
-    CommonSolverNumPy solver;
-    solver._solve(mat, res);
+    CommonSolverPython solver;
+    solver._solveNumpy(mat, res);
 }
-
-// python scipy - optional
-class CommonSolverSciPyUmfpack : public CommonSolver
-{
-public:
-    bool _solve(Matrix *mat, double *res);
-    bool _solve(Matrix *mat, cplx *res);
-};
 inline void solve_linear_system_scipy_umfpack(Matrix *mat, double *res)
 {
-    CommonSolverSciPyUmfpack solver;
-    solver._solve(mat, res);
+    CommonSolverPython solver;
+    solver._solveScipyUmfpack(mat, res);
 }
 inline void solve_linear_system_scipy_umfpack(Matrix *mat, cplx *res)
 {
-    CommonSolverSciPyUmfpack solver;
-    solver._solve(mat, res);
+    CommonSolverPython solver;
+    solver._solveScipyUmfpack(mat, res);
 }
-
-class CommonSolverSciPyCG : public CommonSolver
-{
-public:
-    bool _solve(Matrix *mat, double *res);
-    bool _solve(Matrix *mat, cplx *res);
-};
 inline void solve_linear_system_scipy_cg(Matrix *mat, double *res)
 {
-    CommonSolverSciPyCG solver;
-    solver._solve(mat, res);
+    CommonSolverPython solver;
+    solver._solveScipyCG(mat, res);
 }
-
-class CommonSolverSciPyGMRES : public CommonSolver
-{
-public:
-    bool _solve(Matrix *mat, double *res);
-    bool _solve(Matrix *mat, cplx *res);
-};
 inline void solve_linear_system_scipy_gmres(Matrix *mat, double *res)
 {
-    CommonSolverSciPyGMRES solver;
-    solver._solve(mat, res);
+    CommonSolverPython solver;
+    solver._solveScipyGMRES(mat, res);
 }
 
 #endif

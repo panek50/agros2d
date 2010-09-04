@@ -3,8 +3,8 @@
 // file for the exact terms).
 // Email: hermes1d@googlegroups.com, home page: http://hpfem.org/
 
-#include "matrix.h"
-#include "solvers.h"
+#include "../matrix.h"
+#include "../solvers.h"
 
 #ifdef COMMON_WITH_SUPERLU
 #include <superlu/slu_ddefs.h>

@@ -343,8 +343,7 @@ ViewScalarFilter *HermesElasticity::viewScalarFilter(PhysicFieldVariable physicF
     Solution *sln1 = Util::scene()->sceneSolution()->sln(0);
     Solution *sln2 = Util::scene()->sceneSolution()->sln(1);
 
-    return new ViewScalarFilterElasticity(sln1,
-                                          sln2,
+    return new ViewScalarFilterElasticity(Tuple<MeshFunction *>(sln1, sln2),
                                           physicFieldVariable,
                                           physicFieldVariableComp);
 }

@@ -347,7 +347,7 @@ ViewScalarFilter *HermesFlow::viewScalarFilter(PhysicFieldVariable physicFieldVa
     Solution *slnY = Util::scene()->sceneSolution()->sln(Util::scene()->sceneSolution()->timeStep() * Util::scene()->problemInfo()->hermes()->numberOfSolution() + 1);
     Solution *slnPress = Util::scene()->sceneSolution()->sln(Util::scene()->sceneSolution()->timeStep() * Util::scene()->problemInfo()->hermes()->numberOfSolution() + 2);
 
-    return new ViewScalarFilterFlow(slnX, slnY, slnPress,
+    return new ViewScalarFilterFlow(Tuple<MeshFunction *>(slnX, slnY, slnPress),
                                     physicFieldVariable,
                                     physicFieldVariableComp);
 }

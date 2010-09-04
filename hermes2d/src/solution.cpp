@@ -152,8 +152,7 @@ public:
 //   'n' is the polynomial degree.)
 //
 
-Solution::Solution()
-        : MeshFunction()
+void Solution::init()
 {
   memset(tables, 0, sizeof(tables));
   memset(elems,  0, sizeof(elems));
@@ -173,51 +172,34 @@ Solution::Solution()
   num_dofs = -1;
 
   set_quad_2d(&g_quad_2d_std);
+}
+
+Solution::Solution()
+        : MeshFunction()
+{
+  this->init();
 }
 
 Solution::Solution(Mesh *mesh) : MeshFunction(mesh) 
 {
-  memset(tables, 0, sizeof(tables));
-  memset(elems,  0, sizeof(elems));
-  memset(oldest, 0, sizeof(oldest));
-  transform = true;
-  type = UNDEF;
-  own_mesh = false;
-  num_components = 0;
-  e_last = NULL;
-  exact_mult = 1.0;
-
-  mono_coefs = NULL;
-  elem_coefs[0] = elem_coefs[1] = NULL;
-  elem_orders = NULL;
-  dxdy_buffer = NULL;
-  num_coefs = num_elems = 0;
-  num_dofs = -1;
-
-  set_quad_2d(&g_quad_2d_std);
+  this->init();
+  this->mesh = mesh;
+  this->own_mesh = false;
 }
 
-Solution::Solution(Space* s, Vector* vec) : MeshFunction(mesh) 
+Solution::Solution(Mesh *mesh, ExactFunction exactfn) : MeshFunction(mesh) 
 {
-  memset(tables, 0, sizeof(tables));
-  memset(elems,  0, sizeof(elems));
-  memset(oldest, 0, sizeof(oldest));
-  transform = true;
-  type = UNDEF;
-  own_mesh = false;
-  num_components = 0;
-  e_last = NULL;
-  exact_mult = 1.0;
+  this->init();
+  this->mesh = mesh;
+  this->own_mesh = false;
+  this->set_exact(mesh, exactfn);
+}
 
-  mono_coefs = NULL;
-  elem_coefs[0] = elem_coefs[1] = NULL;
-  elem_orders = NULL;
-  dxdy_buffer = NULL;
-  num_coefs = num_elems = 0;
-  num_dofs = -1;
-
-  set_quad_2d(&g_quad_2d_std);
-
+Solution::Solution(Space* s, Vector* vec) : MeshFunction(s->get_mesh()) 
+{
+  this->init();
+  this->mesh = s->get_mesh();
+  this->own_mesh = false;
   this->set_fe_solution(s, vec);
 }
 
@@ -256,6 +238,7 @@ void Solution::copy(const Solution* sln)
   free();
 
   mesh = new Mesh;
+  //printf("Copying mesh from Solution and setting own_mesh = true.\n");
   mesh->copy(sln->mesh);
   own_mesh = true;
 
@@ -310,8 +293,9 @@ void Solution::free()
     if (elem_coefs[i] != NULL)
       { delete [] elem_coefs[i];  elem_coefs[i] = NULL; }
 
-  if (own_mesh && mesh != NULL)
+  if (own_mesh == true && mesh != NULL)
   {
+    //printf("Deleting mesh in Solution (own_mesh == true).\n");
     delete mesh;
     own_mesh = false;
   }
@@ -394,7 +378,7 @@ void Solution::set_fe_solution(Space* space, Vector* vec, double dir)
     PrecalcShapeset *pss = new PrecalcShapeset(shapeset);
     if (pss == NULL) error("PrecalcShapeset could not be allocated in Solution::set_fe_solution().");
     
-    this-> set_fe_solution(space, pss, vec, dir);
+    this->set_fe_solution(space, pss, vec, dir);
 }
 
 // for internal use
@@ -422,6 +406,7 @@ void Solution::set_fe_solution(Space* space, PrecalcShapeset* pss, Vector* vec, 
 
   // copy the mesh   TODO: share meshes between solutions
   mesh = new Mesh;
+  //printf("Copying mesh from Space and setting own_mesh = true.\n");
   mesh->copy(space->get_mesh());
   own_mesh = true;
 
@@ -832,6 +817,17 @@ void Solution::transform_values(int order, Node* node, int newmask, int oldmask,
   }
 }
 
+int Solution::get_edge_fn_order(int edge, Space* space, Element* e)
+{
+  if (e == NULL) e = element;
+  
+  if (type == SLN && space != NULL) {
+    return space->get_edge_order(e, edge); 
+  } else {
+    return ScalarFunction::get_edge_fn_order(edge);
+  }
+}
+
 
 void Solution::precalculate(int order, int mask)
 {
@@ -1140,6 +1136,7 @@ void Solution::load(const char* filename)
   // load the mesh
   mesh = new Mesh;
   mesh->load_raw(f);
+  //printf("Loading mesh from file and setting own_mesh = true.\n");
   own_mesh = true;
 
   if (compressed) pclose(f); else fclose(f);

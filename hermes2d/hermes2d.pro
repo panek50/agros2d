@@ -7,6 +7,7 @@ DEFINES += NOGLUT
 
 DEFINES += COMMON_WITH_UMFPACK
 DEFINES += COMMON_WITH_SUPERLU
+DEFINES += COMMON_WITH_MUMPS
 DEFINES += COMPLEX=std::complex\<double\>
 
 INCLUDEPATH += src \
@@ -96,11 +97,11 @@ SOURCES += src/compat/fmemopen.cpp \
         src/hermes2d.cpp \
         src/weakform.cpp \
         src/solvers.cpp \
-        src/python_solvers.cpp \
-        src/umfpack_solver.cpp \
-        src/superlu_solver.cpp \
-        src/sparselib_solver.cpp \
-        src/mumps_solver.cpp \
+        src/matrix_solvers/python_solvers.cpp \
+        src/matrix_solvers/umfpack_solver.cpp \
+        src/matrix_solvers/superlu_solver.cpp \
+        src/matrix_solvers/sparselib_solver.cpp \
+        src/matrix_solvers/mumps_solver.cpp \
         src/precond_ml.cpp \
         src/precond_ifpack.cpp \
         src/forms.cpp \
