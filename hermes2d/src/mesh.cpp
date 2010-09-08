@@ -1157,7 +1157,7 @@ void Mesh::convert_quads_to_triangles()
      }
   }
   char* mesh_tmp = NULL;
-  mesh_tmp = tmpnam(NULL);
+  mkstemp(mesh_tmp);
   tmp.save(mesh_tmp);
   Mesh mesh_tmp_for_convert;
   H2DReader loader_mesh_tmp_for_convert;
