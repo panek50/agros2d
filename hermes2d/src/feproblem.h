@@ -17,153 +17,174 @@
 #ifndef __H2D_FEPROBLEM_H
 #define __H2D_FEPROBLEM_H
 
-#include "matrix_old.h"
+#include "../common/callstack.h"
+#include "adapt.h"
+#include "matrix.h"
+#include "graph.h"
 #include "forms.h"
 #include "weakform.h"
+#include "views/view.h"
+#include "views/scalar_view.h"
+#include "views/vector_view.h"
+#include "views/order_view.h"
+#include "ref_selectors/selector.h"
 #include <map>
+
+typedef enum {H2D_L2_NORM, H2D_H1_NORM, H2D_HCURL_NORM, H2D_HDIV_NORM} ProjNormType;
 
 class Space;
 class PrecalcShapeset;
 class WeakForm;
-class _Matrix;
+class Matrix;
 class SparseMatrix;
-class _Vector;
+class Vector;
 class Solver;
 
-/// Finite Element problem class
+// Default H2D projection norm in H1 norm.
+extern int H2D_DEFAULT_PROJ_NORM;
+
+/// Instantiated template. It is used to create a clean Windows DLL interface.
+H2D_API_USED_TEMPLATE(Tuple<int>);
+H2D_API_USED_TEMPLATE(Tuple<Space*>);
+H2D_API_USED_TEMPLATE(Tuple<MeshFunction*>);
+H2D_API_USED_TEMPLATE(Tuple<Solution*>);
+H2D_API_USED_TEMPLATE(Tuple<PrecalcShapeset*>);
+
+/// For projection, the user may provide bi/linear forms for each solution component stored
+/// in tuples of following types
+typedef Tuple< std::pair<WeakForm::matrix_form_val_t, WeakForm::matrix_form_ord_t> > matrix_forms_tuple_t;
+typedef Tuple< std::pair<WeakForm::vector_form_val_t, WeakForm::vector_form_ord_t> > vector_forms_tuple_t;
+
+
+/// Discrete problem class
 ///
-/// This class does assembling into passed-in structures.
+/// This class does assembling into external matrix / vactor structures.
 ///
-class FeProblem {
+class H2D_API FeProblem {
 public:
-  FeProblem(WeakForm *wf, Tuple<Space *> spaces);
+  FeProblem(WeakForm* wf, Tuple<Space *> spaces, bool is_linear = false);
   virtual ~FeProblem();
   void free();
 
+  // Get pointer to n-th space.
   Space* get_space(int n) {  return this->spaces[n];  }
+
+  // This is different from H2D.
   PrecalcShapeset* get_pss(int n) {  return this->pss[n];  }
 
-  void create(SparseMatrix *mat);
-  // OLD void assemble(const _Vector *x, _Vector *f, _Matrix *jac);
-  void assemble(_Vector* rhs, _Matrix* jac, _Vector* x = NULL);
-  void assemble(_Vector* rhs, _Matrix* jac, Tuple<Solution*> u_ext =  Tuple<Solution*> ());
+  // Precalculate matrix sparse structure.
+  void create(SparseMatrix* mat, Vector* rhs = NULL, bool rhsonly = false);
 
+  // General assembling procedure for nonlinear problems. coeff_vec is the 
+  // previous Newton vector.
+  void assemble(scalar* coeff_vec, SparseMatrix* mat, Vector* rhs, bool rhsonly = false);
+
+  // Assembling for linear problems. Same as the previous functions, but 
+  // does not need the coeff_vector.
+  void assemble(SparseMatrix* mat, Vector* rhs, bool rhsonly = false);
+
+  // Get the number of unknowns.
   int get_num_dofs();
+
   bool is_matrix_free() { return wf->is_matrix_free(); }
+
   void invalidate_matrix() { have_matrix = false; }
 
 protected:
-  WeakForm *wf;
+  WeakForm* wf;
+
+  bool is_linear;
 
   int ndof;
   int *sp_seq;
   int wf_seq;
   Tuple<Space *> spaces;
-  PrecalcShapeset** pss;
 
-  int num_user_pss;
-  bool values_changed;
-  bool struct_changed;
+  scalar** matrix_buffer;                /// buffer for holding square matrix (during assembling)
+  int matrix_buffer_dim;                 /// dimension of the matrix held by 'matrix_buffer'
+  inline scalar** get_matrix_buffer(int n);
+
   bool have_spaces;
   bool have_matrix;
+
+  bool values_changed;
+  bool struct_changed;
   bool is_up_to_date();
 
-  scalar** buffer;
-  int mat_size;
-
-  scalar** get_matrix_buffer(int n)
-  {
-    if (n <= mat_size) return buffer;
-    if (buffer != NULL) delete [] buffer;
-    return (buffer = new_matrix<scalar>(mat_size = n));
-  }
+  PrecalcShapeset** pss;    // This is different from H3D.
+  int num_user_pss;         // This is different from H3D.
 
   ExtData<Ord>* init_ext_fns_ord(std::vector<MeshFunction *> &ext);
+  ExtData<Ord>* init_ext_fns_ord(std::vector<MeshFunction *> &ext, int edge);
   ExtData<scalar>* init_ext_fns(std::vector<MeshFunction *> &ext, RefMap *rm, const int order);
   Func<double>* get_fn(PrecalcShapeset *fu, RefMap *rm, const int order);
 
-  // Key for caching transformed function values on elements
-  struct Key
-  {
-    int index;
-    int order;
-    int sub_idx;
-    int shapeset_type;
-
-    Key(int index, int order, int sub_idx, int shapeset_type)
-    {
-      this->index = index;
-      this->order = order;
-      this->sub_idx = sub_idx;
-      this->shapeset_type = shapeset_type;
-    }
-  };
-
-  struct Compare
-  {
-    bool operator()(Key a, Key b) const
-    {
-      if (a.index < b.index) return true;
-      else if (a.index > b.index) return false;
-      else
-      {
-        if (a.order < b.order) return true;
-        else if (a.order > b.order) return false;
-        else
-        {
-          if (a.sub_idx < b.sub_idx) return true;
-          else if (a.sub_idx > b.sub_idx) return false;
-          else
-          {
-            if (a.shapeset_type < b.shapeset_type) return true;
-            else return false;
-          }
-        }
-      }
-    }
-  };
-
   // Caching transformed values for element
-  std::map<Key, Func<double>*, Compare> cache_fn;
+  std::map<PrecalcShapeset::Key, Func<double>*, PrecalcShapeset::Compare> cache_fn;
   Geom<double>* cache_e[g_max_quad + 1 + 4 * g_max_quad + 4];
   double* cache_jwt[g_max_quad + 1 + 4 * g_max_quad + 4];
 
   void init_cache();
   void delete_cache();
 
-  scalar eval_form(WeakForm::MatrixFormVol *mfv, Tuple<Solution *> u_ext, PrecalcShapeset *fu, PrecalcShapeset *fv, RefMap *ru, RefMap *rv);
-  scalar eval_form(WeakForm::VectorFormVol *vfv, Tuple<Solution *> u_ext, PrecalcShapeset *fv, RefMap *rv);
-  scalar eval_form(WeakForm::MatrixFormSurf *mfv, Tuple<Solution *> u_ext, PrecalcShapeset *fu, PrecalcShapeset *fv, RefMap *ru, RefMap *rv, EdgePos* ep);
-  scalar eval_form(WeakForm::VectorFormSurf *vfv, Tuple<Solution *> u_ext, PrecalcShapeset *fv, RefMap *rv, EdgePos* ep);
+  scalar eval_form(WeakForm::MatrixFormVol *mfv, Tuple<Solution *> u_ext, 
+         PrecalcShapeset *fu, PrecalcShapeset *fv, RefMap *ru, RefMap *rv);
+  scalar eval_form(WeakForm::VectorFormVol *vfv, Tuple<Solution *> u_ext, 
+         PrecalcShapeset *fv, RefMap *rv);
+  scalar eval_form(WeakForm::MatrixFormSurf *mfv, Tuple<Solution *> u_ext, 
+         PrecalcShapeset *fu, PrecalcShapeset *fv, RefMap *ru, RefMap *rv, SurfPos* surf_pos);
+  scalar eval_form(WeakForm::VectorFormSurf *vfv, Tuple<Solution *> u_ext, 
+         PrecalcShapeset *fv, RefMap *rv, SurfPos* surf_pos);
 
 };
 
+H2D_API int get_num_dofs(Tuple<Space *> spaces);
 
-///
-///   Class for projecting solution, from Meshfunction obtain solution vector
-///   Solution vector needed for nonlinear methods as initial guess
-///
-class Projection
-{
-public:
+// Underlying function for global orthogonal projection.
+// Not intended for the user. NOTE: the weak form here must be 
+// a special projection weak form, which is different from 
+// the weak form of the PDE. If you supply a weak form of the 
+// PDE, the PDE will just be solved. 
+void project_internal(Tuple<Space *> spaces, WeakForm *proj_wf, scalar* target_vec, MatrixSolverType matrix_solver = SOLVER_UMFPACK);
 
-  Projection(int n, ...);
-  ~Projection();
+H2D_API void project_global(Tuple<Space *> spaces, Tuple<int> proj_norms, Tuple<MeshFunction *> source_meshfns, 
+                    scalar* target_vec, MatrixSolverType matrix_solver = SOLVER_UMFPACK);
 
-  void set_solver(Solver* solver);
-  scalar* project();
-  scalar* get_solution_vector() const { return vec; }
+H2D_API void project_global(Tuple<Space *> spaces, Tuple<int> proj_norms, Tuple<Solution*> sols_src, Tuple<Solution*> sols_dest, MatrixSolverType matrix_solver = SOLVER_UMFPACK);
 
-protected:
+H2D_API void project_global(Tuple<Space *> spaces, matrix_forms_tuple_t proj_biforms, 
+                    vector_forms_tuple_t proj_liforms, Tuple<MeshFunction*> source_meshfns, 
+                    scalar* target_vec, MatrixSolverType matrix_solver = SOLVER_UMFPACK);
 
-  int num;
-  MeshFunction* slns[10];
-  Space* spaces[10];
-  PrecalcShapeset* pss[10];
-  Solver* solver;
-  scalar* vec;
-};
+H2D_API void project_global(Space *space, 
+                    std::pair<WeakForm::matrix_form_val_t, WeakForm::matrix_form_ord_t> proj_biform,
+                    std::pair<WeakForm::vector_form_val_t, WeakForm::vector_form_ord_t> proj_liform,
+                    ExactFunction source_fn, scalar* target_vec, MatrixSolverType matrix_solver = SOLVER_UMFPACK);
 
+H2D_API void project_global(Space *space, ExactFunction2 source_fn, scalar* target_vec, MatrixSolverType matrix_solver = SOLVER_UMFPACK);
+
+/// Selects the appropriate linear solver.
+H2D_API Vector* create_vector(MatrixSolverType matrix_solver);
+H2D_API SparseMatrix* create_matrix(MatrixSolverType matrix_solver);
+H2D_API Solver* create_solver(MatrixSolverType matrix_solver, Matrix* matrix, Vector* rhs);
+
+/// Basic Newton's loop. Takes a coefficient vector, delivers a coefficient vector (in the 
+/// same variable "init_coeff_vector").
+H2D_API bool solve_newton(Tuple<Space *> spaces, WeakForm* wf, scalar* coeff_vec, 
+                          MatrixSolverType matrix_solver, double newton_tol, 
+                          int newton_max_iter, bool verbose);
+
+// Solve a typical linear problem (without automatic adaptivity).
+// Feel free to adjust this function for more advanced applications.
+H2D_API bool solve_linear(Tuple<Space *> spaces, WeakForm* wf, MatrixSolverType matrix_solver, 
+                          Tuple<Solution *> solutions, scalar*coeff_vec = NULL);
+
+// Do initial checks for the adaptivity process.
+H2D_API void lin_adapt_begin(Tuple<Space *> spaces, Tuple<RefinementSelectors::Selector *> selectors, Tuple<int> proj_norms, TimePeriod * cpu_time);
+
+// Create globally refined space.
+H2D_API Tuple<Space *>* construct_refined_spaces(Tuple<Space *> coarse, int order_increase = 1);
+H2D_API Space* construct_refined_space(Space* coarse, int order_increase = 1);
 #endif
 
 

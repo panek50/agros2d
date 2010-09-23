@@ -161,6 +161,7 @@ void DataTableDialog::updateData()
     txtTextX->clear();
     txtTextY->clear();
 
+    /*
     DataTableRow *data = dataTable.data();
     while (data)
     {
@@ -170,6 +171,7 @@ void DataTableDialog::updateData()
         // next row
         data = data->next;
     }
+    */
     gotoLineX(0);
     gotoLineY(0);
 

@@ -7,6 +7,8 @@
 #define __HERMES_COMMON_TIME_PERIOD_H
 
 // For uint64_t type on windows.
+#include "compat.h"
+
 #ifdef _MSC_VER
 #include <inttypes.h>
 #endif
@@ -20,7 +22,7 @@ enum TimerPeriodTickType {
 /// A named time period measurement with accumulation.
 /** An instance of the timer should not be used across threads. The class is not thread-safe.
  *  \todo Measure time that CPU spent on the task instead of a global time. */
-class TimePeriod {
+class H2D_API TimePeriod {
 public:
   TimePeriod(const char *name = NULL); ///< Constructs internal structures and starts measuring.
 

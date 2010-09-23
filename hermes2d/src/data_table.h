@@ -12,8 +12,6 @@ struct DataTableRow
     double key;
     double value;
     DataTableRow *next;
-
-    inline DataTableRow() { next = NULL; }
 };
 
 class DataTable
@@ -23,12 +21,10 @@ public:
     ~DataTable();
 
     void clear();
+    void remove(double key);
 
     void add(double key, double value);
     void add(double *key, double *value, int count);
-    void update(double key, double value);
-    void remove(double key);
-    bool exists(double key);
 
     int size();
     double min_key();
@@ -38,8 +34,6 @@ public:
 
     double value(double key);
     double derivative(double key);
-
-    inline DataTableRow *data() { return m_data; }
 
     void print();
     void save(const char *filename, double start, double end, int count);

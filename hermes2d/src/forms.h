@@ -87,7 +87,7 @@ inline Ord exp(const Ord &a) { return Ord(3 * a.get_order()); }
 template<typename T>
 class Func
 {
-  const int num_gip; ///< A number of integration points used by this intance.
+  const int num_gip; ///< A number of integration points used by this instance.
 public:
   const int nc;	///< A number of components. Currently accepted values are 1 (H1, L2 space) and 2 (Hcurl, Hdiv space).
   T *val;					// function values. If orders differ for a diffrent
@@ -215,7 +215,7 @@ Geom<Ord>* init_geom_ord();
 /// Init element geometry for volumetric integrals
 Geom<double>* init_geom_vol(RefMap *rm, const int order);
 /// Init element geometry for surface integrals
-Geom<double>* init_geom_surf(RefMap *rm, EdgePos* ep, const int order);
+Geom<double>* init_geom_surf(RefMap *rm, SurfPos* surf_pos, const int order);
 
 
 /// Init the function for calculation the integration order

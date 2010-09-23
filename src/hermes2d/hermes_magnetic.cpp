@@ -182,7 +182,7 @@ void callbackMagneticWeakForm(WeakForm *wf, Tuple<Solution *> slnArray)
     {
         wf->add_matrix_form(0, 0, callback(magnetic_matrix_form_linear_real_real));
         if (analysisType == AnalysisType_Transient)
-            wf->add_vector_form(0, callback(magnetic_vector_form_linear_real), H2D_ANY, slnArray.at(0));
+            wf->add_vector_form(0, callback(magnetic_vector_form_linear_real), HERMES_ANY, slnArray.at(0));
         else
             wf->add_vector_form(0, callback(magnetic_vector_form_linear_real));
         wf->add_vector_form_surf(0, callback(magnetic_vector_form_linear_surf_real));

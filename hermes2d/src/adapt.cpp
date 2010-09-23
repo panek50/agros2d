@@ -16,7 +16,7 @@
 #include "common.h"
 #include "limit_order.h"
 #include "solution.h"
-#include "discrete_problem.h"
+#include "feproblem.h"
 #include "refmap.h"
 #include "quad_all.h"
 #include "matrix.h"
@@ -25,6 +25,9 @@
 #include "element_to_refine.h"
 #include "ref_selectors/selector.h"
 #include "adapt.h"
+#include "views/scalar_view.h"
+#include "views/order_view.h"
+
 
 using namespace std;
 
@@ -738,9 +741,9 @@ void Adapt::fill_regular_queue(Mesh** meshes, Mesh** ref_meshes) {
 void adapt_to_exact_function(Space *space, int proj_norm, ExactFunction exactfn,
                     RefinementSelectors::Selector* selector, double threshold, int strategy,
                     int mesh_regularity, double err_stop, int ndof_stop, bool verbose,
-                    Solution* sln)
+                    Solution* sln, MatrixSolverType matrix_solver)
 {
-  if (verbose == true) printf("Mesh adaptivity to an exact function:\n");
+  if (verbose == true) info("Mesh adaptivity to an exact function:");
 
   // Initialize views.
   char title[200];
@@ -756,7 +759,7 @@ void adapt_to_exact_function(Space *space, int proj_norm, ExactFunction exactfn,
   int as = 1; bool done = false;
   do
   {
-    // Construct the globally refined reference mesh.
+    // Construct a globally refined reference mesh.
     Mesh rmesh;
     rmesh.copy(space->get_mesh());
     rmesh.refine_all_elements();
@@ -770,15 +773,16 @@ void adapt_to_exact_function(Space *space, int proj_norm, ExactFunction exactfn,
     sln_fine->set_exact(&rmesh, exactfn);
 
     // Project the function f() on the coarse mesh.
-    Solution sln_tmp;
-    sln_tmp.set_exact(space->get_mesh(), exactfn);
-    project_global(space, proj_norm, &sln_tmp, sln_coarse);
+    scalar* coeff_vec = new scalar[rspace->get_num_dofs()];
+    project_global(space, proj_norm, sln_fine, coeff_vec, matrix_solver);
+    sln_coarse->set_coeff_vector(space, coeff_vec);
+    delete [] coeff_vec;
 
     // Calculate element errors and total error estimate.
     Adapt hp(space, proj_norm);
     hp.set_solutions(sln_coarse, sln_fine);
     double err_est = hp.calc_elem_errors() * 100;
-    if (verbose == true) printf("Step %d, ndof %d, proj_error %g%%\n",
+    if (verbose == true) info("Step %d, ndof %d, proj_error %g%%",
                  as, space->get_num_dofs(), err_est);
 
     // If err_est too large, adapt the mesh.

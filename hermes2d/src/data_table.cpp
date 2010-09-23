@@ -6,7 +6,6 @@
 #include <sstream>
 #include <fstream>
 #include <stdexcept>
-#include <iostream>
 
 #include "data_table.h"
 
@@ -25,7 +24,7 @@ DataTable::~DataTable()
 void DataTable::clear()
 {
     DataTableRow *data = m_data;
-    while (data)
+    while (data != NULL)
     {
         DataTableRow *tmp = data;
 
@@ -34,7 +33,6 @@ void DataTable::clear()
 
         delete tmp;
     }
-    m_data = NULL;
 }
 
 void DataTable::remove(double key)
@@ -42,7 +40,7 @@ void DataTable::remove(double key)
     DataTableRow *previous = NULL;
     DataTableRow *data = m_data;
 
-    while (data)
+    while (data != NULL)
     {
         if (fabs(key - data->key) < EPS)
         {
@@ -77,13 +75,18 @@ void DataTable::add(double key, double value)
         return;
     }
 
-    while (data)
+    while (data != NULL)
     {
-        // key already exists
+        // key already exists -> replace value
         if (fabs(key - data->key) < EPS)
-            break;
+        {
+            data->key = key;
+            data->value = value;
 
-        // key between
+            break;
+        }
+
+        // key inside
         if (data->next && key > data->key && key < data->next->key)
         {
             DataTableRow *tmp = new DataTableRow();
@@ -122,32 +125,12 @@ void DataTable::add(double *key, double *value, int count)
     }
 }
 
-void DataTable::update(double key, double value)
-{
-    DataTableRow *data = m_data;
-
-    while (data)
-    {
-        // key already exists -> replace value
-        if (fabs(key - data->key) < EPS)
-        {
-            data->key = key;
-            data->value = value;
-
-            break;
-        }
-
-        // next value
-        data = data->next;
-    }
-}
-
 int DataTable::size()
 {
     int size = 0;
 
     DataTableRow *data = m_data;
-    while (data)
+    while (data != NULL)
     {
         size++;
 
@@ -171,7 +154,7 @@ double DataTable::max_key()
     double max = 0.0;
 
     DataTableRow *data = m_data;
-    while (data)
+    while (data != NULL)
     {
         max = data->key;
 
@@ -195,7 +178,7 @@ double DataTable::max_value()
     double max = 0.0;
 
     DataTableRow *data = m_data;
-    while (data)
+    while (data != NULL)
     {
         max = data->value;
 
@@ -206,36 +189,19 @@ double DataTable::max_value()
     return max;
 }
 
-bool DataTable::exists(double key)
-{
-    DataTableRow *data = m_data;
-
-    while (data)
-    {
-        // key exists
-        if (fabs(key - data->key) < EPS)
-            return true;
-
-        // next value
-        data = data->next;
-    }
-
-    return false;
-}
-
 double DataTable::value(double key)
 {
     DataTableRow *data = m_data;
 
     // just one row
-    if (data && !data->next)
+    if (!data->next)
         return data->value;
 
     // key < first value
-    if (data && key <= data->key)
+    if (key <= data->key)
         return data->value;
 
-    while (data)
+    while (data != NULL)
     {
         // key > last value
         if (!data->next && key >= data->key)
@@ -260,14 +226,14 @@ double DataTable::derivative(double key)
     DataTableRow *data = m_data;
 
     // just one row
-    if (data && !data->next)
+    if (!data->next)
         return 0.0;
 
     // key < first value
-    if (data && key <= data->key)
+    if (key <= data->key)
         return (data->next->value - data->value) / (data->next->key - data->key);
 
-    while (data)
+    while (data != NULL)
     {
         // key > last value
         if (!data->next && key >= data->key)
@@ -292,7 +258,7 @@ double DataTable::derivative(double key)
 void DataTable::print()
 {
     DataTableRow *data = m_data;
-    while (data)
+    while (data != NULL)
     {
         printf("%.14g\t%.14g", data->key, data->value);
 

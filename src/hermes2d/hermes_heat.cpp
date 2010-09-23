@@ -173,7 +173,7 @@ void callbackHeatWeakForm(WeakForm *wf, Tuple<Solution *> slnArray)
     {
         wf->add_matrix_form(0, 0, callback(heat_matrix_form_linear));
         if (analysisType == AnalysisType_Transient)
-            wf->add_vector_form(0, callback(heat_vector_form_linear), H2D_ANY, slnArray.at(0));
+            wf->add_vector_form(0, callback(heat_vector_form_linear), HERMES_ANY, slnArray.at(0));
         else
             wf->add_vector_form(0, callback(heat_vector_form_linear));
     }

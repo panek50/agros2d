@@ -20,6 +20,10 @@
 
 #include "common.h"
 
+#include "common_time_period.h" 
+#include "../common/timer.h" 
+#include "../common/callstack.h" 
+
 #include "range.h"
 #include "limit_order.h"
 
@@ -28,31 +32,39 @@
 #include "h2d_reader.h"
 #include "exodusii.h"
 
-#include "space_h1.h"
-#include "space_hcurl.h"
-#include "space_l2.h"
-#include "space_hdiv.h"
+#include "space/space_h1.h"
+#include "space/space_hcurl.h"
+#include "space/space_l2.h"
+#include "space/space_hdiv.h"
 
 #include "quad_all.h"
-#include "shapeset_h1_all.h"
-#include "shapeset_hc_all.h"
-#include "shapeset_hd_all.h"
-#include "shapeset_l2_all.h"
+#include "shapeset/shapeset_h1_all.h"
+#include "shapeset/shapeset_hc_all.h"
+#include "shapeset/shapeset_hd_all.h"
+#include "shapeset/shapeset_l2_all.h"
 
 #include "refmap.h"
 #include "traverse.h"
 #include "trans.h"
 
 #include "weakform.h"
-#include "discrete_problem.h"
 #include "feproblem.h"
-#include "linear_problem.h"
 #include "forms.h"
 
+// solvers
+#include "solver/amesos.h"
+#include "solver/aztecoo.h"
+#include "solver/epetra.h"
+#include "solver/mumps.h"
+#include "solver/nox.h"
+#include "solver/pardiso.h"
+#include "solver/petsc.h"
+#include "solver/umfpack_solver.h"
+
 // preconditioners
-#include "precond.h"
-#include "precond_ifpack.h"
-#include "precond_ml.h"
+#include "solver/precond.h"
+#include "solver/precond_ifpack.h"
+#include "solver/precond_ml.h"
 
 #include "integrals_h1.h"
 #include "integrals_hcurl.h"

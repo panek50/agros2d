@@ -17,7 +17,7 @@
 #define __H2D_SOLUTION_H
 
 #include "function.h"
-#include "space.h"
+#include "space/space.h"
 #include "refmap.h"
 #include "matrix.h"
 
@@ -92,7 +92,8 @@ public:
   Solution();
   Solution(Mesh *mesh);
   Solution(Mesh *mesh, ExactFunction exactfn);
-  Solution (Space* s, Vector* vec);
+  Solution (Space* s, Vector* coeff_vec);
+  Solution (Space* s, scalar* coeff_vec);
   virtual ~Solution();
   virtual void free();
 
@@ -164,8 +165,9 @@ public:
 public:
 
   /// Converts a coefficient vector into a Solution.
-  virtual void set_fe_solution(Space* space, PrecalcShapeset* pss, Vector* vec, double dir = 1.0);
-  virtual void set_fe_solution(Space* space, Vector* vec, double dir = 1.0);
+  virtual void set_coeff_vector(Space* space, Vector* vec, bool add_dir_lift = true);
+  virtual void set_coeff_vector(Space* space, PrecalcShapeset* pss, scalar* coeffs, bool add_dir_lift = true);
+  virtual void set_coeff_vector(Space* space, scalar* coeffs, bool add_dir_lift = true);
 
   /// Internal.
   virtual void set_active_element(Element* e);
@@ -208,6 +210,10 @@ protected:
   Element* e_last; ///< last visited element when getting solution values at specific points
 
 };
+
+/// Passes solution components calculated from solution vector as Solutions.
+void H2D_API vector_to_solutions(scalar* solution_vector, Tuple<Space*> spaces, Tuple<Solution*> solutions);
+void H2D_API vector_to_solution(scalar* solution_vector, Space* space, Solution* solution);
 
 
 /// \brief Represents an exact solution of a PDE.
