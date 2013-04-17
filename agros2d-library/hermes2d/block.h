@@ -39,6 +39,9 @@ template <typename Scalar>
 class SolverFem;
 
 template <typename Scalar>
+class SolverBem;
+
+template <typename Scalar>
 class WeakFormAgros;
 
 
