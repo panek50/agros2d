@@ -300,4 +300,5 @@ private:
     Hermes::vector<SpaceSharedPtr<Scalar> > deepMeshAndSpaceCopy(Hermes::vector<SpaceSharedPtr<Scalar> > spaces, bool createReference);
 };
 
+
 #endif // SOLVER_H
