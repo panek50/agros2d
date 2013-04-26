@@ -48,7 +48,7 @@ class Bem
 {
 
 public:
-    Bem(FieldInfo * const fieldInfo);
+    Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh);
     void readMesh();
     void addPhysics();
     void assemblyMatrices();
@@ -56,6 +56,7 @@ public:
     QString toString();
 
 private:
+    MeshSharedPtr m_mesh;
     QList<Node> m_nodeList;
     QList<Edge> m_edgeList;
     QList<Edge> m_bounderyList;

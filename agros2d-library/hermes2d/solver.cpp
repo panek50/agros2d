@@ -1325,9 +1325,9 @@ void SolverBem<Scalar>::solveSimple(int timeStep, int adaptivityStep)
 {
 
     qDebug() << m_solverID;
-    Bem bem(m_block->fields().at(0)->fieldInfo());
-    MeshSharedPtr mesh = MeshSharedPtr(new Mesh());
 
+    MeshSharedPtr mesh = MeshSharedPtr(new Mesh());
+    Bem bem(m_block->fields().at(0)->fieldInfo(), mesh);
     // check for DOFs
     int ndof = Hermes::Hermes2D::Space<Scalar>::get_num_dofs(actualSpaces());
     SolutionStore::SolutionRunTimeDetails runTime(Agros2D::problem()->actualTimeStepLength(),

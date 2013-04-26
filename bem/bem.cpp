@@ -17,11 +17,11 @@
 #include "../hermes2d/include/function/exact_solution.h"
 #include "algebra.h"
 
-Bem::Bem(FieldInfo * const fieldInfo)
+Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
 {
     qDebug() << "BEM solver";
     m_fieldInfo = fieldInfo;
-
+    m_mesh = mesh;
     readMesh();
     addPhysics();
     assemblyMatrices();
@@ -29,64 +29,67 @@ Bem::Bem(FieldInfo * const fieldInfo)
 
 void Bem::readMesh()
 {
-    QTextStream qout(stdout);
-    QString meshFileName = cacheProblemDir() + "/initial.mesh";
-    QFile * meshFile = new QFile(meshFileName);
-    meshFile->open(QIODevice::ReadOnly | QIODevice::Text);
-    QDomDocument document;
-    document.setContent(meshFile);
-
-    QDomNodeList vertices = document.elementsByTagName("v");
-    for(int i = 0; i < vertices.count(); i++)
+    for (int i = 0; i<Agros2D::scene()->edges->length(); i++)
     {
-        Node node;
-        node.m_index =  vertices.at(i).attributes().namedItem("i").nodeValue().toInt();
-        node.m_x = vertices.at(i).attributes().namedItem("x").nodeValue().toDouble();
-        node.m_y = vertices.at(i).attributes().namedItem("y").nodeValue().toDouble();
-        m_nodeList.append(node);
     }
+    //    QTextStream qout(stdout);
+    //    QString meshFileName = cacheProblemDir() + "/initial.mesh";
+    //    QFile * meshFile = new QFile(meshFileName);
+    //    meshFile->open(QIODevice::ReadOnly | QIODevice::Text);
+    //    QDomDocument document;
+    //    document.setContent(meshFile);
 
-    QDomNodeList elements = document.elementsByTagName("domain:t");
-    for(int i = 0; i < elements.count(); i++)
-    {
-        Element element;
-        element.m_index = elements.at(i).attributes().namedItem("i").nodeValue().toInt();
-        element.m_marker = elements.at(i).attributes().namedItem("m").nodeValue().toInt();
-        element.m_nodes[0] = elements.at(i).attributes().namedItem("v1").nodeValue().toDouble();
-        element.m_nodes[1] = elements.at(i).attributes().namedItem("v2").nodeValue().toDouble();
-        element.m_nodes[2] = elements.at(i).attributes().namedItem("v3").nodeValue().toDouble();
-        m_elementList.append(element);
-    }
+    //    QDomNodeList vertices = document.elementsByTagName("v");
+    //    for(int i = 0; i < vertices.count(); i++)
+    //    {
+    //        Node node;
+    //        node.m_index =  vertices.at(i).attributes().namedItem("i").nodeValue().toInt();
+    //        node.m_x = vertices.at(i).attributes().namedItem("x").nodeValue().toDouble();
+    //        node.m_y = vertices.at(i).attributes().namedItem("y").nodeValue().toDouble();
+    //        m_nodeList.append(node);
+    //    }
 
-    QDomNodeList edges = document.elementsByTagName("ed");
-    for(int i = 0; i < edges.count(); i++)
-    {
-        Edge edge;
-        edge.m_index = edges.at(i).attributes().namedItem("i").nodeValue().toInt();
-        edge.m_marker = edges.at(i).attributes().namedItem("m").nodeValue().toInt();
-        edge.m_nodes[0] =  edges.at(i).attributes().namedItem("v1").nodeValue().toDouble();
-        edge.m_nodes[1] =  edges.at(i).attributes().namedItem("v2").nodeValue().toDouble();
-        edge.m_boundary = false;
-        edge.m_boundary_type = BoundaryConditionType_Vector;
-        edge.m_boundary_value = 0;
-        m_edgeList.append(edge);
-    }
+    //    QDomNodeList elements = document.elementsByTagName("domain:t");
+    //    for(int i = 0; i < elements.count(); i++)
+    //    {
+    //        Element element;
+    //        element.m_index = elements.at(i).attributes().namedItem("i").nodeValue().toInt();
+    //        element.m_marker = elements.at(i).attributes().namedItem("m").nodeValue().toInt();
+    //        element.m_nodes[0] = elements.at(i).attributes().namedItem("v1").nodeValue().toDouble();
+    //        element.m_nodes[1] = elements.at(i).attributes().namedItem("v2").nodeValue().toDouble();
+    //        element.m_nodes[2] = elements.at(i).attributes().namedItem("v3").nodeValue().toDouble();
+    //        m_elementList.append(element);
+    //    }
 
-    QDomNode boundaryEdges = document.elementsByTagName("boundary_edges").at(0);
+    //    QDomNodeList edges = document.elementsByTagName("ed");
+    //    for(int i = 0; i < edges.count(); i++)
+    //    {
+    //        Edge edge;
+    //        edge.m_index = edges.at(i).attributes().namedItem("i").nodeValue().toInt();
+    //        edge.m_marker = edges.at(i).attributes().namedItem("m").nodeValue().toInt();
+    //        edge.m_nodes[0] =  edges.at(i).attributes().namedItem("v1").nodeValue().toDouble();
+    //        edge.m_nodes[1] =  edges.at(i).attributes().namedItem("v2").nodeValue().toDouble();
+    //        edge.m_boundary = false;
+    //        edge.m_boundary_type = BoundaryConditionType_Vector;
+    //        edge.m_boundary_value = 0;
+    //        m_edgeList.append(edge);
+    //    }
 
-    int n = boundaryEdges.childNodes().count();
-    for(int i = 0; i < n; i++)
-    {
-        int index = boundaryEdges.childNodes().at(i).childNodes().at(0).nodeValue().toInt();
-        for(int j = 0; j <  m_edgeList.count(); j++)
-        {
-            if (m_edgeList.at(j).m_index == index)
-            {
-                m_edgeList[j].m_boundary = true;
-                m_bounderyList.append(m_edgeList[j]);
-            }
-        }
-    }
+    //    QDomNode boundaryEdges = document.elementsByTagName("boundary_edges").at(0);
+
+    //    int n = boundaryEdges.childNodes().count();
+    //    for(int i = 0; i < n; i++)
+    //    {
+    //        int index = boundaryEdges.childNodes().at(i).childNodes().at(0).nodeValue().toInt();
+    //        for(int j = 0; j <  m_edgeList.count(); j++)
+    //        {
+    //            if (m_edgeList.at(j).m_index == index)
+    //            {
+    //                m_edgeList[j].m_boundary = true;
+    //                m_bounderyList.append(m_edgeList[j]);
+    //            }
+    //        }
+    //    }
 }
 
 void Bem::addPhysics()
