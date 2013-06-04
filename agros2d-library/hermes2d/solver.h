@@ -187,7 +187,7 @@ public:
     virtual void solveInitialTimeStep() = 0;
 
     // returns the value of the next time step lenght (for transient problems), using BDF2 approximation
-    virtual NextTimeStep estimateTimeStepLength(int timeStep, int adaptivityStep) = 0;
+    virtual TimeStepInfo estimateTimeStepLength(int timeStep, int adaptivityStep) = 0;
 
     virtual void solveSimple(int timeStep, int adaptivityStep) = 0;
     virtual void solveReferenceAndProject(int timeStep, int adaptivityStep) = 0;
@@ -210,7 +210,7 @@ public:
     virtual void solveInitialTimeStep();
 
     // returns the value of the next time step lenght (for transient problems), using BDF2 approximation
-    virtual NextTimeStep estimateTimeStepLength(int timeStep, int adaptivityStep);
+    virtual TimeStepInfo estimateTimeStepLength(int timeStep, int adaptivityStep);
 
     virtual void solveSimple(int timeStep, int adaptivityStep);
     virtual void solveReferenceAndProject(int timeStep, int adaptivityStep);
@@ -257,9 +257,8 @@ public:
 
 
     virtual void init(Block* block);
-
-    virtual void createInitialSpace();
     virtual void solveInitialTimeStep() {assert(0);}
+    virtual void createInitialSpace();
 
     // returns the value of the next time step lenght (for transient problems), using BDF2 approximation
     virtual TimeStepInfo estimateTimeStepLength(int timeStep, int adaptivityStep) {assert(0);}
