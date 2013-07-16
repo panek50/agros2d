@@ -19,11 +19,9 @@ INCLUDEPATH += ../pythonlab-library
 INCLUDEPATH += ../util
 INCLUDEPATH += ../agros2d-library/
 
-LIBS += -lagros_3rdparty
-LIBS += -lagros_util
-LIBS += -lagros_pythonlab_library
-LIBS += -lagros2d_hermes2d
-LIBS += -lagros2d_library
+LIBS += -lblas
+LIBS += -llapacke
+
 
 linux-g++|linux-g++-64|linux-g++-32|linux-clang {
     # DEFINES += WITH_UNITY

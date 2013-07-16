@@ -187,13 +187,13 @@ void Bem::assemblyMatrices()
 template<typename Scalar>
 BemSolution<Scalar>::BemSolution(MeshSharedPtr mesh) : Hermes::Hermes2D::ExactSolutionScalar<Scalar>(mesh)
 {
+  this->mesh = mesh;
 }
 
 
 template<typename Scalar>
 Scalar BemSolution<Scalar>::value(double x, double y) const
-{
-    qDebug() << "BemSolution::value";
+{    
     return 10;
 }
 

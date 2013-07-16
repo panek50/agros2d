@@ -83,6 +83,8 @@ public:
   void save(const char* filename) const { }
 
 protected:
+
+  // virtual void precalculate(int order, int mask) { qDebug() << "OK";}
   Scalar constant;
 };
 

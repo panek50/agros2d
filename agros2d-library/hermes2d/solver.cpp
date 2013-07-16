@@ -575,7 +575,9 @@ void SolverFem<Scalar>::init(Block* block)
 }
 
 template <typename Scalar>
-void SolverFem<Scalar>::initSelectors(Hermes::vector<ProjNormType>& projNormType,
+
+
+void SolverFem<Scalar>::initSelectors(Hermes::vector<NormType>& projNormType,
                                       Hermes::vector<RefinementSelectors::Selector<Scalar> *>& selectors)
 {
     // set adaptivity selector
@@ -1347,7 +1349,7 @@ void SolverBem<Scalar>::solveSimple(int timeStep, int adaptivityStep)
     {
         // output
         Hermes::vector<MeshFunctionSharedPtr<Scalar> > solutions;
-        solutions.push_back(MeshFunctionSharedPtr<Scalar>(new BemSolution<double>(mesh)));
+        solutions.push_back(MeshFunctionSharedPtr<Scalar>(new BemSolution<double>(spacesMeshes(actualSpaces()).at(0))));
 
         BlockSolutionID solutionID(m_block, timeStep, adaptivityStep, SolutionMode_Normal);
 
