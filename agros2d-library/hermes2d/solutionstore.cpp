@@ -294,6 +294,22 @@ void SolutionStore::addSolution(FieldSolutionID solutionID, MultiArray<double> m
     // m_memoryInfos[solutionID] = tr1::shared_ptr<MemoryInfo>(new MemoryInfo(multiSolution));
 }
 
+void SolutionStore::addSolutionNoSaving(FieldSolutionID solutionID, MultiArray<double> multiSolution, SolutionRunTimeDetails runTime)
+{
+
+    // append multisolution
+    m_multiSolutions.append(solutionID);
+
+    // append properties
+    m_multiSolutionRunTimeDetails.insert(solutionID, runTime);
+
+    // insert to the cache
+    insertMultiSolutionToCache(solutionID, multiSolution);
+
+    // save to the memory info (for debug purposes)
+    // m_memoryInfos[solutionID] = tr1::shared_ptr<MemoryInfo>(new MemoryInfo(multiSolution));
+}
+
 void SolutionStore::removeSolution(FieldSolutionID solutionID)
 {
     assert(m_multiSolutions.contains(solutionID));
@@ -342,8 +358,20 @@ void SolutionStore::addSolution(BlockSolutionID blockSolutionID, MultiArray<doub
     foreach (Field* field, blockSolutionID.group->fields())
     {
         FieldSolutionID fieldSID = blockSolutionID.fieldSolutionID(field->fieldInfo());
-        MultiArray<double> fieldMultiSolution = multiSolution.fieldPart(blockSolutionID.group, field->fieldInfo());
+        MultiArray<double> fieldMultiSolution = multiSolution.fieldPart(blockSolutionID.group, field->fieldInfo());        
         addSolution(fieldSID, fieldMultiSolution, runTime);
+    }
+
+    // printDebugMemoryInfo();
+}
+
+void SolutionStore::addSolutionNoSaving(BlockSolutionID blockSolutionID, MultiArray<double> multiSolution, SolutionRunTimeDetails runTime)
+{
+    foreach (Field* field, blockSolutionID.group->fields())
+    {
+        FieldSolutionID fieldSID = blockSolutionID.fieldSolutionID(field->fieldInfo());
+        MultiArray<double> fieldMultiSolution = multiSolution.fieldPart(blockSolutionID.group, field->fieldInfo());
+        addSolutionNoSaving(fieldSID, fieldMultiSolution, runTime);
     }
 
     // printDebugMemoryInfo();

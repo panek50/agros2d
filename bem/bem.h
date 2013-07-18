@@ -20,32 +20,6 @@ enum BoundaryConditionType
     BoundaryConditionType_Vector
 };
 
-struct Node
-{
-    int m_index;
-    double m_x;
-    double m_y;
-};
-
-struct Element
-{
-    int m_index;
-    int m_nodes[3];
-    int m_marker;
-};
-
-struct Edge
-{
-    int m_index;
-    int m_nodes[2];
-    int m_marker;
-    bool m_boundary;
-    BoundaryConditionType m_boundary_type;
-    double m_boundary_value;
-};
-
-
-
 
 template <typename Scalar>
 class BemSolution: public Hermes::Hermes2D::ExactSolutionScalar<Scalar>
@@ -68,7 +42,7 @@ public:
 protected:
 
     // virtual void precalculate(int order, int mask) { qDebug() << "OK";}
-    double constant;
+    double constant;    
 };
 
 
@@ -87,10 +61,6 @@ public:
 private:
     BemSolution<double> * m_solution;
     MeshSharedPtr m_mesh;
-    QList<Node> m_nodeList;
-    QList<Edge> m_edgeList;
-    QList<Edge> m_bounderyList;
-    QList<Element> m_elementList;
     FieldInfo * m_fieldInfo;
 };
 

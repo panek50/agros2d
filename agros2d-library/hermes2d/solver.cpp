@@ -1283,7 +1283,7 @@ void SolverBem<Scalar>::solveSimple(int timeStep, int adaptivityStep)
 
         BlockSolutionID solutionID(m_block, timeStep, adaptivityStep, SolutionMode_Normal);
 
-        Agros2D::solutionStore()->addSolution(solutionID, MultiArray<Scalar>(actualSpaces(), solutions), runTime);
+        Agros2D::solutionStore()->addSolutionNoSaving(solutionID, MultiArray<Scalar>(actualSpaces(), solutions), runTime);
     }
     catch (AgrosSolverException e)
     {

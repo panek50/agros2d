@@ -88,6 +88,7 @@ public:
     MultiArray<double> multiSolutionPreviousCalculatedTS(BlockSolutionID solutionID);
 
     void addSolution(BlockSolutionID solutionID, MultiArray<double> multiArray, SolutionRunTimeDetails runTime);
+    void addSolutionNoSaving(BlockSolutionID solutionID, MultiArray<double> multiArray, SolutionRunTimeDetails runTime);
     void removeSolution(BlockSolutionID solutionID);
 
     // removes all solutions with the given time step
@@ -135,6 +136,7 @@ private:
     QList<FieldSolutionID> m_multiSolutionCacheIDOrder;
 
     void addSolution(FieldSolutionID solutionID, MultiArray<double> multiArray, SolutionRunTimeDetails runTime);
+    void addSolutionNoSaving(FieldSolutionID solutionID, MultiArray<double> multiArray, SolutionRunTimeDetails runTime);
     void removeSolution(FieldSolutionID solutionID);
 
     void insertMultiSolutionToCache(FieldSolutionID solutionID, MultiArray<double> multiArray);
