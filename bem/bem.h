@@ -26,9 +26,20 @@ class EdgeComponent
 
 public:
     EdgeComponent(Node firstNode, Node secondNode);
+    double elementArea() {return m_element->area;}
     int id() { return m_id; }
+
+    // ToDo: make it private
+    Hermes::Hermes2D::Element * m_element;
     Node firstNode() { return m_firstNode; }
     Node secondNode() { return m_secondNode; }
+    Node m_gravity;
+    QString boundaryType;
+    double m_value;
+    bool m_isEssential;
+    int m_edgeID;
+    QString m_type;
+    double m_length;
 
 private:
     int m_id;
@@ -36,28 +47,7 @@ private:
     Node m_secondNode;
 };
 
-class Edge
-{
 
-public:
-    Edge(int id) { m_id = id; }
-    int id() { return m_id; }
-    QList<EdgeComponent> m_components;
-    QString boundaryType;
-    double m_value;
-    bool m_isEssential;
-
-private:
-    int m_id;
-    QString m_type;
-
-};
-
-class Geometry
-{
-public:
-    QList<Edge> m_edges;
-};
 
 template <typename Scalar>
 class BemSolution: public Hermes::Hermes2D::ExactSolutionScalar<Scalar>
@@ -95,12 +85,14 @@ public:
     QString toString();
     BemSolution<double> * getSolution();
 
+    QList<EdgeComponent> m_edgeComponents;
+    int m_nElement;
 
 private:
     BemSolution<double> * m_solution;
     MeshSharedPtr m_mesh;
     FieldInfo * m_fieldInfo;    
-    Geometry m_geometry;
+
 };
 
 #endif // BEM_H

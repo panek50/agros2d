@@ -17,10 +17,16 @@
 #include "../hermes2d/include/function/exact_solution.h"
 
 
+#include <cblas.h>
+#include <lapacke.h>
+
 EdgeComponent::EdgeComponent(Node firstNode, Node secondNode)
 {
     m_firstNode = firstNode;
     m_secondNode = secondNode;
+    m_gravity.x = (firstNode.x + secondNode.x) / 2;
+    m_gravity.y = (firstNode.y + secondNode.y) / 2;
+    m_length = sqrt(pow(firstNode.x - secondNode.x, 2) + pow(firstNode.y - secondNode.y, 2));
 }
 
 Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
@@ -49,22 +55,25 @@ void Bem::addPhysics()
 
     foreach(SceneEdge* sceneEdge, Agros2D::scene()->edges->items())
     {
-        Edge edge = Edge(j);
         SceneBoundary *boundary = sceneEdge->marker(m_fieldInfo);
         if (boundary && (!boundary->isNone()))
         {
             Module::BoundaryType boundaryType = m_fieldInfo->boundaryType(boundary->type());
-            edge.m_value = boundary->value(boundaryType.id()).number();
-            edge.m_isEssential = (boundaryType.essential().count() > 0);
+            double value = boundary->value(boundaryType.id()).number();
+            bool isEssential = (boundaryType.essential().count() > 0);
 
+            int nElement = 0;
             for_all_active_elements(e, m_mesh)
             {
+                nElement++;
                 for (unsigned i = 0; i < e->get_nvert(); i++)
                 {
                     if(e->vn[i]->bnd == 1)
+                    {
                         if(atoi(m_mesh->get_boundary_markers_conversion().get_user_marker(m_mesh->get_base_edge_node(e, i)->marker).marker.c_str()) == j)
                         {
                             Node firstNode, secondNode;
+
                             firstNode.id = e->vn[i]->id;
                             firstNode.x = e->vn[i]->x;
                             firstNode.y = e->vn[i]->y;
@@ -74,50 +83,55 @@ void Bem::addPhysics()
                             secondNode.y = e->vn[e->next_vert(i)]->y;
 
                             EdgeComponent component(firstNode, secondNode);
-                            edge.m_components.append(component);
+
+                            component.m_element = e;
+                            component.m_value = value;
+                            component.m_isEssential = isEssential;
+                            component.m_edgeID = j;
+                            m_edgeComponents.append(component);
                         }
+                    }
                 }
             }
-            m_geometry.m_edges.append(edge);
             j++;
+            // ToDo: improve
+            m_nElement = nElement;
+            qDebug() << nElement;
         }
     }
 }
-
 
 QString Bem::toString()
 {
     QString output = "";
 
-    foreach (Edge edge, m_geometry.m_edges)
+    foreach(EdgeComponent component, m_edgeComponents)
     {
         output += "Edge: ";
-        output += QString::number(edge.id());
+        output += QString::number(component.m_edgeID);
         output +=  "\n";
         output += "Boundary conditiom type: ";
-        output += QString::number(edge.m_isEssential);
+        output += QString::number(component.m_isEssential);
         output +=  "\n";
         output += "Boundary conditiom value: ";
-        output += QString::number(edge.m_value);
+        output += QString::number(component.m_value);
         output +=  "\n";
         output += "Edge components: \n";
-        foreach(EdgeComponent component, edge.m_components)
-        {
-            output += "First node:";
-            output += QString::number(component.firstNode().id);
-            output += " ";
-            output += QString::number(component.firstNode().x);
-            output += " ";
-            output += QString::number(component.firstNode().y);
-            output += "\n";
-            output += "Second node:";
-            output += QString::number(component.secondNode().id);
-            output += " ";
-            output += QString::number(component.secondNode().x);
-            output += " ";
-            output += QString::number(component.secondNode().y);
-            output += "\n";
-        }
+        output += "First node:";
+        output += QString::number(component.firstNode().id);
+        output += " ";
+        output += QString::number(component.firstNode().x);
+        output += " ";
+        output += QString::number(component.firstNode().y);
+        output += "\n";
+        output += "Second node:";
+        output += QString::number(component.secondNode().id);
+        output += " ";
+        output += QString::number(component.secondNode().x);
+        output += " ";
+        output += QString::number(component.secondNode().y);
+        output += "\n";
+
     }
     qDebug() << output;
     return output;
@@ -134,7 +148,7 @@ BemSolution<Scalar>::BemSolution(MeshSharedPtr mesh) : Hermes::Hermes2D::ExactSo
 template<typename Scalar>
 Scalar BemSolution<Scalar>::value(double x, double y) const
 {
-    return 10;
+    return x*y;
 }
 
 template<typename Scalar>
@@ -153,9 +167,15 @@ Hermes::Hermes2D::MeshFunction<Scalar>* BemSolution<Scalar>::clone() const
     return sln;
 }
 
-Bem::solve()
+void Bem::solve()
 {
+    int n = m_edgeComponents.count();
+    double * matrix_H = new double[n * n];
+    double * matrix_G = new double[n * n];
 
+
+    delete[] matrix_H;
+    delete[] matrix_G;
 }
 
 template class BemSolution<double>;
