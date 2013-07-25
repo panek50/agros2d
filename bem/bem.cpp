@@ -1,4 +1,4 @@
-#include <QTextStream>s
+#include <QTextStream>
 
 #include "bem.h"
 #include "util.h"
@@ -16,6 +16,13 @@
 #include "../agros2d-library/hermes2d/problem_config.h"
 #include "../hermes2d/include/function/exact_solution.h"
 
+
+EdgeComponent::EdgeComponent(Node firstNode, Node secondNode)
+{
+    m_firstNode = firstNode;
+    m_secondNode = secondNode;
+}
+
 Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
 {
     qDebug() << "BEM solver";
@@ -23,9 +30,10 @@ Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
     m_mesh = mesh;
     m_solution = new BemSolution<double>(mesh);
     addPhysics();
-    assemblyMatrices();
+    qDebug() << toString();
 }
 
+// ToDo: probably memory leak
 BemSolution<double> * Bem::getSolution()
 {
     return m_solution;
@@ -35,94 +43,84 @@ BemSolution<double> * Bem::getSolution()
 void Bem::addPhysics()
 {
 
+    Hermes::Hermes2D::Element *e;
+    int j = 0;
 
-    int index = 0;
-    qDebug() << (m_mesh)->get_max_element_id();
-    foreach(SceneEdge* edge, Agros2D::scene()->edges->items())
+
+    foreach(SceneEdge* sceneEdge, Agros2D::scene()->edges->items())
     {
-        SceneBoundary *boundary = edge->marker(m_fieldInfo);
-       // qDebug() << boundary->name();
-       // qDebug() << boundary->type();
-       // qDebug() << boundary->value();
+        Edge edge = Edge(j);
+        SceneBoundary *boundary = sceneEdge->marker(m_fieldInfo);
         if (boundary && (!boundary->isNone()))
         {
             Module::BoundaryType boundaryType = m_fieldInfo->boundaryType(boundary->type());
-            Hermes::Hermes2D::Element *e;
+            edge.m_value = boundary->value(boundaryType.id()).number();
+            edge.m_isEssential = (boundaryType.essential().count() > 0);
 
             for_all_active_elements(e, m_mesh)
             {
-                for (unsigned edge = 0; edge < e->get_nvert(); edge++)
+                for (unsigned i = 0; i < e->get_nvert(); i++)
                 {
-                    bool boundary = false;
-
-                    if (e->en[edge]->marker != -1)
-                    {
-                        if ((e->en[edge]->bnd == 1) && (!e->en[edge]->elem[1]))
+                    if(e->vn[i]->bnd == 1)
+                        if(atoi(m_mesh->get_boundary_markers_conversion().get_user_marker(m_mesh->get_base_edge_node(e, i)->marker).marker.c_str()) == j)
                         {
-                            boundary = true;
-                            if(atoi(m_fieldInfo->initialMesh()->get_boundary_markers_conversion().get_user_marker(e->en[edge]->marker).marker.c_str()) == index)
-                            {
-                                qDebug() << e->en[edge]->id;
-                                qDebug() << atoi(m_fieldInfo->initialMesh()->get_boundary_markers_conversion().get_user_marker(e->en[edge]->marker).marker.c_str());
-                            }
+                            Node firstNode, secondNode;
+                            firstNode.id = e->vn[i]->id;
+                            firstNode.x = e->vn[i]->x;
+                            firstNode.y = e->vn[i]->y;
+
+                            secondNode.id = e->vn[e->next_vert(i)]->id;
+                            secondNode.x = e->vn[e->next_vert(i)]->x;
+                            secondNode.y = e->vn[e->next_vert(i)]->y;
+
+                            EdgeComponent component(firstNode, secondNode);
+                            edge.m_components.append(component);
                         }
-                    }
                 }
             }
+            m_geometry.m_edges.append(edge);
+            j++;
         }
-        index++;
     }
 }
+
 
 QString Bem::toString()
 {
-    QString meshString;
-    meshString += "\nNodes: \n";
-    foreach(Node node, m_nodeList)
-    {
-        meshString += QString::number(node.m_index);
-        meshString += "  ";
-        meshString += QString::number(node.m_x);
-        meshString += "  ";
-        meshString += QString::number(node.m_y);
-        meshString += "\n";
-    }
+    QString output = "";
 
-    meshString += "\nEdges \n";
-    foreach(Edge edge, m_edgeList)
+    foreach (Edge edge, m_geometry.m_edges)
     {
-        meshString += QString::number(edge.m_index);
-        meshString += "  ";
-        meshString += QString::number(edge.m_marker);
-        meshString += "  ";
-        meshString += QString::number(edge.m_nodes[0]);
-        meshString += "  ";
-        meshString += QString::number(edge.m_nodes[1]);
-        meshString += "  ";
-        meshString += QString::number(edge.m_boundary);
-        meshString += "\n";
+        output += "Edge: ";
+        output += QString::number(edge.id());
+        output +=  "\n";
+        output += "Boundary conditiom type: ";
+        output += QString::number(edge.m_isEssential);
+        output +=  "\n";
+        output += "Boundary conditiom value: ";
+        output += QString::number(edge.m_value);
+        output +=  "\n";
+        output += "Edge components: \n";
+        foreach(EdgeComponent component, edge.m_components)
+        {
+            output += "First node:";
+            output += QString::number(component.firstNode().id);
+            output += " ";
+            output += QString::number(component.firstNode().x);
+            output += " ";
+            output += QString::number(component.firstNode().y);
+            output += "\n";
+            output += "Second node:";
+            output += QString::number(component.secondNode().id);
+            output += " ";
+            output += QString::number(component.secondNode().x);
+            output += " ";
+            output += QString::number(component.secondNode().y);
+            output += "\n";
+        }
     }
-
-    meshString += "\nElements \n";
-    foreach(Element element, m_elementList)
-    {
-        meshString += QString::number(element.m_index);
-        meshString += "  ";
-        meshString += QString::number(element.m_marker);
-        meshString += "  ";
-        meshString += QString::number(element.m_nodes[0]);
-        meshString += "  ";
-        meshString += QString::number(element.m_nodes[1]);
-        meshString += "  ";
-        meshString += QString::number(element.m_nodes[2]);
-        meshString += "\n";
-    }
-    return meshString;
-}
-
-void Bem::assemblyMatrices()
-{
-    int n = m_bounderyList.count();
+    qDebug() << output;
+    return output;
 }
 
 
@@ -153,6 +151,11 @@ Hermes::Hermes2D::MeshFunction<Scalar>* BemSolution<Scalar>::clone() const
         return Hermes::Hermes2D::Solution<Scalar>::clone();
     BemSolution<Scalar>* sln = new BemSolution<Scalar>(this->mesh);
     return sln;
+}
+
+Bem::solve()
+{
+
 }
 
 template class BemSolution<double>;

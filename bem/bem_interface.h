@@ -19,7 +19,7 @@ public:
     virtual void solve(FieldInfo*, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh>);
     virtual Hermes::Hermes2D::ExactSolutionScalar<double>* getSolution();
 private:
-    shared_ptr<Bem> m_bem;
+    std::tr1::shared_ptr<Bem> m_bem;
 };
 
 #endif // BEM_INTERFACE_H

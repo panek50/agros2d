@@ -13,13 +13,51 @@
 #include "../agros2d-library/hermes2d/solver.h"
 
 
-enum BoundaryConditionType
+struct Node
 {
-    BoundaryConditionType_None,
-    BoundaryConditionType_Essential,
-    BoundaryConditionType_Vector
+    int id;
+    double x;
+    double y;
 };
 
+
+class EdgeComponent
+{
+
+public:
+    EdgeComponent(Node firstNode, Node secondNode);
+    int id() { return m_id; }
+    Node firstNode() { return m_firstNode; }
+    Node secondNode() { return m_secondNode; }
+
+private:
+    int m_id;
+    Node m_firstNode;
+    Node m_secondNode;
+};
+
+class Edge
+{
+
+public:
+    Edge(int id) { m_id = id; }
+    int id() { return m_id; }
+    QList<EdgeComponent> m_components;
+    QString boundaryType;
+    double m_value;
+    bool m_isEssential;
+
+private:
+    int m_id;
+    QString m_type;
+
+};
+
+class Geometry
+{
+public:
+    QList<Edge> m_edges;
+};
 
 template <typename Scalar>
 class BemSolution: public Hermes::Hermes2D::ExactSolutionScalar<Scalar>
@@ -39,8 +77,7 @@ public:
     /// Saves the exact solution to an XML file.
     void save(const char* filename) const { }
 
-protected:
-
+protected:    
     // virtual void precalculate(int order, int mask) { qDebug() << "OK";}
     double constant;    
 };
@@ -58,10 +95,12 @@ public:
     QString toString();
     BemSolution<double> * getSolution();
 
+
 private:
     BemSolution<double> * m_solution;
     MeshSharedPtr m_mesh;
-    FieldInfo * m_fieldInfo;
+    FieldInfo * m_fieldInfo;    
+    Geometry m_geometry;
 };
 
 #endif // BEM_H

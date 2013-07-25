@@ -117,7 +117,6 @@ void Block::createBoundaryConditions()
                     m_exactSolutionFunctions[function] = boundary;
 
                     Hermes::Hermes2D::EssentialBoundaryCondition<double> *custom_form = new Hermes::Hermes2D::DefaultEssentialBCNonConst<double>(QString::number(index).toStdString(), function);
-
                     this->bcs().at(form.i - 1 + this->offset(field))->add_boundary_condition(custom_form);
                     //  cout << "adding BC i: " << form->i - 1 + this->offset(field) << " ( form i " << form->i << ", " << this->offset(field) << "), expression: " << form->expression << endl;
                 }

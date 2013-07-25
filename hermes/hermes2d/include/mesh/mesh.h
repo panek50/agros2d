@@ -146,6 +146,9 @@ namespace Hermes
       /// For internal use.
       Element* get_element_fast(int id) const;
 
+      ///
+      Node*  get_base_edge_node(Element* base, int edge);
+
       /// For internal use.
       unsigned get_seq() const;
 #pragma endregion
@@ -357,8 +360,7 @@ namespace Hermes
       /// Used for curved edges inside a mesh, where two mirror Nurbs have to be created
       /// for the adjacent elements
       ///
-      Nurbs* reverse_nurbs(Nurbs* nurbs);
-      Node*  get_base_edge_node(Element* base, int edge);
+      Nurbs* reverse_nurbs(Nurbs* nurbs);      
 
       int* parents;
       int parents_size;

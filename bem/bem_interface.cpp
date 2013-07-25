@@ -1,7 +1,6 @@
 #include <QTextStream>
 
 
-
 #include "util.h"
 #include "util/global.h"
 
@@ -22,10 +21,10 @@
 
 Hermes::Hermes2D::ExactSolutionScalar<double>* BemInterface::getSolution()
 {
-    return m_bem->getSolution();
+    return  m_bem->getSolution();
 }
 
 void BemInterface::solve(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh> mesh)
 {
-    m_bem = new Bem(field, mesh);
+    this->m_bem = std::tr1::shared_ptr<Bem>(new Bem(field, mesh));
 }
