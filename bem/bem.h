@@ -11,13 +11,15 @@
 #include "../agros2d-library/hermes2d/problem_config.h"
 #include "../hermes2d/include/function/exact_solution.h"
 #include "../agros2d-library/hermes2d/solver.h"
+#include "bem_matrix.h"
 
-
-struct Node
+class Node : public Vector
 {
+public:
+    Node() : Vector(2) {}
+//
+private:
     int id;
-    double x;
-    double y;
 };
 
 

@@ -24,9 +24,9 @@ EdgeComponent::EdgeComponent(Node firstNode, Node secondNode)
 {
     m_firstNode = firstNode;
     m_secondNode = secondNode;
-    m_gravity.x = (firstNode.x + secondNode.x) / 2;
-    m_gravity.y = (firstNode.y + secondNode.y) / 2;
-    m_length = sqrt(pow(firstNode.x - secondNode.x, 2) + pow(firstNode.y - secondNode.y, 2));
+    m_gravity(0) = (firstNode(0) + secondNode(0)) / 2;
+    m_gravity(1) = (firstNode(1) + secondNode(1)) / 2;
+    m_length = sqrt(pow(firstNode(0) - secondNode(0), 2) + pow(firstNode(1) - secondNode(1), 2));
 }
 
 Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
@@ -75,12 +75,12 @@ void Bem::addPhysics()
                             Node firstNode, secondNode;
 
                             firstNode.id = e->vn[i]->id;
-                            firstNode.x = e->vn[i]->x;
-                            firstNode.y = e->vn[i]->y;
+                            firstNode(0) = e->vn[i]->x;
+                            firstNode(1) = e->vn[i]->y;
 
                             secondNode.id = e->vn[e->next_vert(i)]->id;
-                            secondNode.x = e->vn[e->next_vert(i)]->x;
-                            secondNode.y = e->vn[e->next_vert(i)]->y;
+                            secondNode(0) = e->vn[e->next_vert(i)]->x;
+                            secondNode(1) = e->vn[e->next_vert(i)]->y;
 
                             EdgeComponent component(firstNode, secondNode);
 
@@ -120,16 +120,16 @@ QString Bem::toString()
         output += "First node:";
         output += QString::number(component.firstNode().id);
         output += " ";
-        output += QString::number(component.firstNode().x);
+        output += QString::number(component.firstNode()(0));
         output += " ";
-        output += QString::number(component.firstNode().y);
+        output += QString::number(component.firstNode()(1));
         output += "\n";
         output += "Second node:";
         output += QString::number(component.secondNode().id);
         output += " ";
-        output += QString::number(component.secondNode().x);
+        output += QString::number(component.secondNode()(0));
         output += " ";
-        output += QString::number(component.secondNode().y);
+        output += QString::number(component.secondNode()(1));
         output += "\n";
 
     }
