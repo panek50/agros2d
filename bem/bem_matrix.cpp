@@ -1,15 +1,18 @@
-#include "bem_matrix.h"
+#include <math.h>
+
 #include  <QString>
+#include  <QDebug>
 #include  <assert.h>
 
+#include "bem_matrix.h"
 
-Matrix::Matrix(int row, int column)
+BemMatrix::BemMatrix(int row, int column)
 {    
     this->createArray(row,column);
     this->clear();
 }
 
-Matrix::Matrix(double array[], int row, int column)
+BemMatrix::BemMatrix(double array[], int row, int column)
 {
     int i,j;
     this->createArray(row, column);
@@ -22,7 +25,7 @@ Matrix::Matrix(double array[], int row, int column)
     }
 }
 
-Matrix::Matrix(const Matrix & m)
+BemMatrix::BemMatrix(const BemMatrix & m) : QObject()
 {
     int i,j;
     this->createArray(m.m_row,m.m_column);
@@ -36,14 +39,16 @@ Matrix::Matrix(const Matrix & m)
 }
 
 
-Matrix::~Matrix()
+
+
+BemMatrix::~BemMatrix()
 {
     delete[] m_array;
 }
 
 
-Matrix & Matrix::operator=(const Matrix & m)
-{    
+BemMatrix & BemMatrix::operator=(const BemMatrix & m)
+{
     if(this == &m)
         return *this;
     
@@ -64,7 +69,7 @@ Matrix & Matrix::operator=(const Matrix & m)
     return *this;
 }
 
-bool Matrix::operator==(const Matrix & m) const
+bool BemMatrix::operator==(const BemMatrix & m) const
 {
     for(int i = 0; i < m_row; i++)
     {
@@ -77,10 +82,10 @@ bool Matrix::operator==(const Matrix & m) const
     return true;
 }
 
-Matrix Matrix::operator+(const Matrix & m)
+BemMatrix BemMatrix::operator+(const BemMatrix & m) const
 {
     int i,j;
-    Matrix  mtemp(m.m_row, m.m_column);
+    BemMatrix mtemp(m.m_row, m.m_column);
     
     for(i = 0; i  <  m_row; i++)
     {
@@ -93,10 +98,10 @@ Matrix Matrix::operator+(const Matrix & m)
 }
 
 
-Matrix Matrix::operator-(const Matrix & m)
+BemMatrix BemMatrix::operator-(const BemMatrix & m)
 {
     int i,j;
-    Matrix  mtemp(m.m_row,m.m_column);
+    BemMatrix  mtemp(m.m_row,m.m_column);
     
     for(i = 0; i  <  m_row; i++)
     {
@@ -109,31 +114,13 @@ Matrix Matrix::operator-(const Matrix & m)
 }
 
 
-Matrix Matrix::operator *(const Matrix & m)
+
+BemMatrix BemMatrix::operator *(const BemMatrix & m)
 {
     int i,j,k;
-
-    if (m.m_row != m_column)
+    assert(m_column == m.row());
     {
-        if (m.m_row == 1)
-        {
-            Matrix mtemp(1, m.m_column);
-            mtemp.clear();
-
-            for(i = 0; i  <  m_row; i++)
-            {
-                for(j = 0; j  <  m_column; j++)
-                {
-                    mtemp.m_array[i] = mtemp.m_array[i] + this->m_array[j + i * m_column] * m.m_array[j];
-                }
-            }
-            return mtemp;
-        }
-        else throw;
-    }
-    else
-    {
-        Matrix mtemp(m_row, m.m_column);
+        BemMatrix mtemp(m_column, m.row());
         mtemp.clear();
 
         for(i = 0; i  <  m_row; i++)
@@ -148,20 +135,45 @@ Matrix Matrix::operator *(const Matrix & m)
         }
         return mtemp;
     }
-    assert(0);
 }
 
-double & Matrix::operator() (unsigned row, unsigned column)
+BemMatrix BemMatrix::operator *(const double & x) const
+{
+    BemMatrix mtemp(m_row, m_column);
+    for(int i = 0; i  <  m_row; i++)
+    {
+        for(int j = 0; j  <  m_column; j++)
+        {
+            mtemp.m_array[j + i * m_column] = m_array[j + i * m_column] * x;
+        }
+    }
+    return mtemp;
+}
+
+BemMatrix operator *(double x, BemMatrix m)
+{
+    BemMatrix mtemp(m.row(), m.column());
+    for(int i = 0; i  <  m.row(); i++)
+    {
+        for(int j = 0; j  <  m.column(); j++)
+        {
+            mtemp(i, j) = m(i,j) * x;
+        }
+    }
+    return mtemp;
+}
+
+double & BemMatrix::operator() (unsigned row, unsigned column)
 {
     return m_array[m_column * row + column];
 }
 
-void Matrix::set(int row, int column, double value)
+void BemMatrix::set(int row, int column, double value)
 {
     m_array[m_column * row + column] = value;
 }
 
-QString Matrix::toString()
+QString BemMatrix::toString()
 {
     int i,j;
     QString out = "";
@@ -179,25 +191,14 @@ QString Matrix::toString()
 }
 
 
-int Matrix::countColumn()
+void BemMatrix::createArray(int row, int column)
 {
-    return this->m_column;
-}
-
-int Matrix::countRow()
-{
-    return this->m_row;
-}
-
-void Matrix::createArray(int row, int column)
-{
-    int i;
     this->m_column = column;
     this->m_row = row;
     m_array = new double [row * column];
 }
 
-void Matrix::clear()
+void BemMatrix::clear()
 {
     int i,j;
     for(i = 0; i  <  m_row; i++)
@@ -209,7 +210,7 @@ void Matrix::clear()
     }
 }
 
-void Matrix::eye()
+void BemMatrix::eye()
 {
     int i,j;
     for(i = 0; i < this->m_row; i++)
@@ -224,116 +225,161 @@ void Matrix::eye()
 }
 
 
-//void Matrix::gaussElim()
-//{
-//    int i,j,k;
-//    int maxPosition;
-//    double max;
-//    double * ptemp;
-
-
-//    for(k=0;k < this->m_row;k++)
-//    {
-//        max = this->m_array[k][k];
-//        maxPosition=k;
-//        for(i=k; i < this->m_row; i++)
-//        {
-//            if((max < m_array[i][k])||(-max>m_array[i][k]))
-//            {
-//                max = m_array[i][k];
-//                maxPosition=i;
-//            }
-
-//        }
-//        ptemp=m_array[maxPosition];
-//        m_array[maxPosition]=m_array[k];
-//        m_array[k]=ptemp;
-
-//        for(j=k; j < this->m_column; j++)
-//        {
-//            this->m_array[k][j]= this->m_array[k][j]/max;
-//        }
-
-//        for(i=k+1; i < this->m_row; i++)
-//        {
-//            for(j=this->m_column-1; j>=k; j--)
-//            {
-//                this->m_array[j + i * m_column] =  this->m_array[j + i * m_column]-this->m_array[i][k]*this->m_array[k][j];
-//            }
-//            m_array[i][k]=0;
-//        }
-//    }
-
-
-//    for(k=m_row-1;k>=0;k--)
-//    {
-//        {
-//            for(i=k-1; i>=0; i--)
-//            {
-//                for(j=m_column-1; j>=i; j--)
-//                {
-//                    m_array[j + i * m_column] = m_array[j + i * m_column] - m_array[k][j]*m_array[i][k];
-
-//                }
-//            }
-
-//        }
-//    }
-
-//}
-
-
-//void Matrix::luFactorisation()
-//{
-//    int i,j,k;
-//    int maxPosition;
-//    double max;
-//    double * ptemp;
-//    double sum;
-
-//    for(k=0;k < this->m_row-1;k++)
-//    {
-//        max=this->m_array[k][k];
-//        maxPosition=k;
-//        for(i=k+2; i < this->m_row; i++)
-//        {
-//            if((max < m_array[i][k])||(-max>m_array[i][k]))
-//            {
-//                max = m_array[i][k];
-//                maxPosition=i;
-//            }
-
-//        }
-//        ptemp=m_array[maxPosition];
-//        m_array[maxPosition]=m_array[k];
-//        m_array[k]=ptemp;
-//        for(i=k+1; i < this->m_row; i++)
-//        {
-//            for(j=k+1; j < m_column; j++)
-//            {
-
-//                this->m_array[j + i * m_column] =  this->m_array[j + i * m_column]-this->m_array[i][k]*this->m_array[k][j]/max;
-//            }
-//            m_array[i][k]=this->m_array[i][k]*this->m_array[k][m_column-(k+1)] /max/m_array[k][m_column-(k+1)];
-//        }
-//    }
-
-
-//    for(j = 0; j < m_row; j++)
-//    {
-//        for(i = j; i < m_column; i++)
-//        {
-//            sum = 0;
-//            for(k=j;k < =(i-1);k++)
-//            {
-//                sum = sum + m_array[i * m_column + k] * m_array[k * m_column + j];
-//            }
-//            m_array[j + i * m_column]=(i==j)-sum;
-//        }
-//    }
-//}
+BemVector::BemVector(int n) : BemMatrix(1, n) {}
 
 
 
-Vector::Vector(int n) : Matrix(1, n) {}
+BemVector::BemVector(BemMatrix m) : BemMatrix(1, m.column())
+{
+    if (!((m.row() == 1) || (m.column() == 1)))
+    {
+        assert(0);
+    }
+
+    for(int i = 0; i < this->column(); i++)
+    {
+        this->operator()(i) = m(0, i);
+    }
+}
+
+BemVector::BemVector(const BemVector & v) : BemMatrix(1, v.column())
+{
+    for(int i = 0; i < this->column(); i++)
+    {
+        m_array[i] = v.m_array[i];
+    }
+}
+
+BemVector operator *(double x, BemVector v)
+{
+    BemVector vtemp(v.column());
+    for(int i = 0; i  <  v.column(); i++)
+    {
+        vtemp(i) = v(i) * x;
+    }
+
+    return vtemp;
+}
+
+
+
+BemVector BemVector::operator *(BemMatrix  m)
+{
+    int i, j;
+    BemVector v = * this;
+
+    assert(m.column() == this->column());
+    {
+        BemVector vtemp(this->column());
+        vtemp.clear();
+
+        for(i = 0; i  <  this->column(); i++)
+        {
+            for(j = 0; j  <  m.column(); j++)
+            {
+                vtemp(i) += m(j, i) * v(i);
+            }
+        }
+        return vtemp;
+    }
+}
+
+
+BemVector operator *(BemMatrix m, BemVector v)
+{
+    int i, j;
+    assert(m.column() == v.column());
+    {
+        BemVector vtemp(v.column());
+        vtemp.clear();
+
+        for(i = 0; i  <  v.column(); i++)
+        {
+            for(j = 0; j  <  m.column(); j++)
+            {
+                vtemp(i) += m(i, j) * v(j);
+            }
+        }
+        return vtemp;
+    }
+}
+
+double BemVector::operator *(BemVector  v)
+{
+    assert(v.column() == this->column());
+
+    int i;
+    double result = 0;
+    BemVector & a = (*this);
+
+    for(i = 0; i  <  this->column(); i++)
+    {
+        result += v(i) * a(i);
+    }
+
+    return result;
+}
+
+BemVector & BemVector::operator =(const BemVector & v)
+{
+    if(this == &v)
+        return *this;
+    BemMatrix::operator =(v);
+    return *this;
+}
+
+double BemVector::length()
+{
+    double length = 0;
+    for(int i = 0; i < this->column(); i++)
+    {
+        length += this->operator ()(i);
+    }
+    length = sqrt(length);
+    return length;
+}
+
+Node & Node::operator =(const Node & n)
+{
+    if(this == &n)
+        return *this;
+    BemVector::operator =(n);
+    return *this;
+}
+
+Node::Node(double x, double y) : BemVector(2)
+{
+    BemVector & v = (*this);
+    v(0) = x;
+    v(1) = y;
+}
+
+void Node::shift(double x, double y)
+{
+    BemVector & v = (*this);
+    v(0) = v(0) + x;
+    v(1) = v(1) + y;
+
+    qDebug() << v.toString();
+}
+
+void Node::rotate(double angle)
+{
+    BemVector & v = (*this);
+    BemMatrix m(2,2);
+    m(0, 0) = cos(angle);
+    m(0, 1) = - sin(angle);
+    m(1, 0) = sin(angle);
+    m(1, 1) = cos(angle);
+    v = m * v;
+    qDebug() << v.toString();
+}
+
+Node::Node(BemVector v) : BemVector(v.column())
+{
+    for(int i = 0; i < this->column(); i++)
+    {
+        this->operator()(i) = v(i);
+    }
+}
 

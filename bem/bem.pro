@@ -73,8 +73,10 @@ win32-msvc2010 {
 }
 
 # interface
-HEADERS      += bem_interface.h
-SOURCES      += bem_interface.cpp
+HEADERS      += bem_interface.h \
+    bem_matrix.h
+SOURCES      += bem_interface.cpp \
+    bem_matrix.cpp
 
 # headers and sources
 HEADERS      += bem.h

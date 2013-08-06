@@ -13,15 +13,6 @@
 #include "../agros2d-library/hermes2d/solver.h"
 #include "bem_matrix.h"
 
-class Node : public Vector
-{
-public:
-    Node() : Vector(2) {}
-//
-private:
-    int id;
-};
-
 
 class EdgeComponent
 {
@@ -34,8 +25,8 @@ public:
     // ToDo: make it private
     Hermes::Hermes2D::Element * m_element;
     Node firstNode() { return m_firstNode; }
-    Node secondNode() { return m_secondNode; }
-    Node m_gravity;
+    Node secondNode() { return m_secondNode; }    
+    Node gravity() const { return m_gravity;}
     QString boundaryType;
     double m_value;
     bool m_isEssential;
@@ -47,6 +38,7 @@ private:
     int m_id;
     Node m_firstNode;
     Node m_secondNode;
+    Node m_gravity;
 };
 
 
@@ -86,7 +78,7 @@ public:
     void solve();
     QString toString();
     BemSolution<double> * getSolution();
-
+    double integral(Node v, Node a, Node b);
     QList<EdgeComponent> m_edgeComponents;
     int m_nElement;
 

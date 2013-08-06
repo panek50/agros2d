@@ -26,5 +26,8 @@ Hermes::Hermes2D::ExactSolutionScalar<double>* BemInterface::getSolution()
 
 void BemInterface::solve(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh> mesh)
 {
-    this->m_bem = std::tr1::shared_ptr<Bem>(new Bem(field, mesh));
+    this->m_bem = new Bem(field, mesh);
+    this->m_bem->addPhysics();
+    qDebug() << "run";
+    this->m_bem->solve();
 }

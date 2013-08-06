@@ -1,6 +1,5 @@
 #include <QTextStream>
 
-#include "bem.h"
 #include "util.h"
 #include "util/global.h"
 
@@ -16,13 +15,15 @@
 #include "../agros2d-library/hermes2d/problem_config.h"
 #include "../hermes2d/include/function/exact_solution.h"
 
-
 #include <cblas.h>
 #include <lapacke.h>
+
+#include "bem.h"
 
 EdgeComponent::EdgeComponent(Node firstNode, Node secondNode)
 {
     m_firstNode = firstNode;
+
     m_secondNode = secondNode;
     m_gravity(0) = (firstNode(0) + secondNode(0)) / 2;
     m_gravity(1) = (firstNode(1) + secondNode(1)) / 2;
@@ -35,7 +36,6 @@ Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
     m_fieldInfo = fieldInfo;
     m_mesh = mesh;
     m_solution = new BemSolution<double>(mesh);
-    addPhysics();
     qDebug() << toString();
 }
 
@@ -169,13 +169,33 @@ Hermes::Hermes2D::MeshFunction<Scalar>* BemSolution<Scalar>::clone() const
 
 void Bem::solve()
 {
+    qDebug() << "solve";
     int n = m_edgeComponents.count();
-    double * matrix_H = new double[n * n];
-    double * matrix_G = new double[n * n];
+    BemMatrix matrix_H(n, n);
+    BemMatrix matrix_G(n, n);
+    for (int i = 0; i < n; i++)
+    {
+        Node v(m_edgeComponents.at(i).gravity());
+        for (int j = 0; j < n; j++)
+        {
+            Node a = m_edgeComponents[j].firstNode();
+            Node b = m_edgeComponents[j].secondNode();
+            double Hij = integral(v, a, b);
+        }
+    }
+}
 
 
-    delete[] matrix_H;
-    delete[] matrix_G;
+double Bem::integral(Node v, Node a, Node b)
+{
+    qDebug() << "integral";
+    Node center = (a + b);
+    qDebug() << center.toString();
+    //    Node at = a - center;
+    //    Node bt = b - center;
+    //    qDebug() << center.toString();
+    //    qDebug() << at.toString();
+    return 0;
 }
 
 template class BemSolution<double>;
