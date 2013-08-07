@@ -1,5 +1,8 @@
 QT += core opengl svg gui network xml webkit xmlpatterns widgets webkitwidgets
 
+LIBS += -lblas
+LIBS += -llapacke
+
 TEMPLATE = lib
 CONFIG += plugin
 
@@ -84,3 +87,5 @@ SOURCES      += bem.cpp
 
 TARGET = agros2d_solver_bem
 DESTDIR = ../libs
+
+

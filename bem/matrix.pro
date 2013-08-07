@@ -8,3 +8,6 @@ TEMPLATE = app
 SOURCES += main.cpp \
     bem_matrix.cpp
 HEADERS += bem_matrix.h
+
+LIBS += -lblas
+LIBS += -llapacke

@@ -3,8 +3,18 @@
 
 #include <assert.h>
 
+#include <exception>
 #include<QObject>
 #include<QString>
+
+class BemException : public std::exception
+{
+public:
+    virtual const char* what() const throw()
+    {
+        return "Matrices are not aligned.";
+    }
+};
 
 class BemMatrix : public QObject
 {
@@ -20,14 +30,18 @@ public:
     bool operator== (const BemMatrix & m) const;
     BemMatrix operator+(const BemMatrix & m) const;
     BemMatrix operator-(const BemMatrix & m);
-    BemMatrix operator*(const BemMatrix & m);
+    BemMatrix operator*(BemMatrix & m);
     BemMatrix operator*(const double & x) const;
     BemMatrix operator/(double x) {return operator *(1/x); }
+    BemMatrix solve(const BemMatrix & m);
     friend BemMatrix operator*(double x, BemMatrix m);
     friend BemMatrix operator/(double x, BemMatrix m);
 
     int row() const { return m_row; }
+    void setRow(int row) { m_row = row; }
     int column() const { return m_column; }
+    void setColumn(int column) { m_column = column; }
+
     double & operator() (unsigned row, unsigned col);
     void set(int m_row, int m_column, double value);
 
@@ -40,51 +54,49 @@ public:
     void luFactorisation();
 
 protected:
-    double *m_array;
-
-private:
     void createArray(int m_row, int m_column);
+    double *m_array;
     int m_row;
     int m_column;
 
 };
 
+enum BemVectorType
+{
+    VectorTypeColumn = 0,
+    VectorTypeRow = 1
+};
+
 class BemVector : public BemMatrix
 {
-public:
-    BemVector(BemMatrix m);
-    BemVector(const BemVector & v);
-    BemVector(int n);
-    BemVector & operator=(const BemVector & m);
-    double length();
-    void set(int n, double value) {  BemMatrix::set(0, n, value); }
-    BemVector operator +( const BemVector & v) { return static_cast<BemVector>(BemMatrix::operator +(v)); }
-    BemVector operator -( const BemVector & v) { return static_cast<BemVector>(BemMatrix::operator -(v)); }
-    BemVector operator *( const double & x) { return static_cast<BemVector>(BemMatrix::operator *(x)); }
-    BemVector operator /( const double & x) { return static_cast<BemVector>(BemMatrix::operator /(x)); }
-    double & operator()(int n) { return BemMatrix::operator() (0, n); }
-    double operator*(BemVector v);
+public:    
+    BemVector(int n) : BemMatrix(n, 1) { m_type = VectorTypeColumn; }
+    BemVector(BemMatrix m) : BemMatrix(m) { if(column() != 1) throw BemException(); }
+    double & operator() (int i) { return BemMatrix::operator()(0, i); }
+    double length() const;
+    BemVector & transpose();
 
-    // BemVector operator*(BemMatrix  m);
-    friend BemVector operator*(BemMatrix m, BemVector v);
+private:
+    BemVectorType m_type;
 };
 
 
-class  Node: public BemVector
+class Node : public BemVector
 {
 public:
-    Node(BemVector v);
     Node() : BemVector(2) {}
-    Node(double x, double y);
-    Node & operator=(const Node & m);
-    Node operator +( const Node & v) { return static_cast<Node>(BemVector::operator +(v)); }
-    Node operator -( const Node & v) { return static_cast<Node>(BemVector::operator -(v)); }
-    Node operator *( const double & x) { return static_cast<Node>(BemVector::operator *(x)); }
-    Node operator /( const double & x) { return static_cast<Node>(BemVector::operator /(x)); }
-    void shift(double x, double y);
-    void rotate(double angle);
-    int id;
+    Node(BemMatrix m) : BemVector(m) {}
+    Node(double x, double y) : BemVector(2) { m_array[0] = x; m_array[1] = y; }
+    Node & operator=(BemVector & v);
+    Node & rotate(double phi);
+    double distanceOf(const Node & node);
+    int id() { return m_id; }
+    void set_id(int id) { m_id = id; }
+
+private:
+    int m_id;
 };
+
 
 Q_DECLARE_METATYPE(BemMatrix);
 

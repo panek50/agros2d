@@ -8,36 +8,62 @@ int main()
 {
 
     QTextStream qout(stdout);
-    int row = 3;
-    int column = 3;
+//    int row = 3;
+//    int column = 3;
 
-    BemMatrix b(row,column);
-    int k = 0;
-    for (int i = 0; i < row; i++)
-    {
-        for (int j = 0; j < column; j++)
-        {
-            b(i, j) = k;
-            k++;
-        }
-    }
+//    BemMatrix b(row,column);
+//    int k = 0;
+//    for (int i = 0; i < row; i++)
+//    {
+//        for (int j = 0; j < column; j++)
+//        {
+//            b(i, j) = k;
+//            k++;
+//        }
+//    }
+
+//    BemMatrix a(3, 1);
 
 
-//    BemMatrix c = 3 * b * 3;
-    BemVector a(3);
-    a(0) = 0;
-    a(1) = 1;
-    a(2) = 2;
-    BemVector d = a * a;
-//    qout << "a = " << a.toString();
-//    qout << "c = " << c.toString();
-    qout << "result = " << d.toString();
-//    Node x;
-//    x(0) = 1;
-//    Node y;
-//    y(0) = 1;
-//    x = y * 5;
-//    qout << "Node:" << x.toString();
-    qout.flush();
+
+
+//    a(0, 0) = 1;
+//    a(1, 0) = 2;
+//    a(2, 0) = 3;
+
+//    BemVector l(a);
+
+//    c(0) = 1;
+//    c(1) = 2;
+//    c(2) = 3;
+//    try{
+//        BemVector d = (a * c);
+//    }
+//    catch (BemException e)
+//    {
+//        qout << e.what() << " Exception on line: " << __LINE__ << "." << " File: " << __FILE__ "\n";
+//    }
+
+
+//    Node y,z;
+//    z(0) = 2;
+//    z(1) = 3;
+//    y(0) = 2;
+//    y(1) = 3;
+    BemMatrix a(2,2);
+    a(0,0) = 1;
+    a(0,1) = 0;
+    a(1,0) = 2;
+    a(1,1) = 3;
+
+    BemVector b(2);
+    b(0) = 3;
+    b(1) = 2;
+
+
+    qout << a.toString();
+    qout << (a.solve(b)).toString();
+    qout << a.toString();
+    // qout << (y.rotate(3.141592654).toString());
     return 0;
 }

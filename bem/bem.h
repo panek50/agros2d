@@ -29,6 +29,7 @@ public:
     Node gravity() const { return m_gravity;}
     QString boundaryType;
     double m_value;
+    double m_derivation;
     bool m_isEssential;
     int m_edgeID;
     QString m_type;
@@ -78,7 +79,7 @@ public:
     void solve();
     QString toString();
     BemSolution<double> * getSolution();
-    double integral(Node v, Node a, Node b);
+    Node integral(Node v, Node a, Node b);
     QList<EdgeComponent> m_edgeComponents;
     int m_nElement;
 

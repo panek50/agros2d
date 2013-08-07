@@ -23,11 +23,12 @@
 EdgeComponent::EdgeComponent(Node firstNode, Node secondNode)
 {
     m_firstNode = firstNode;
-
     m_secondNode = secondNode;
     m_gravity(0) = (firstNode(0) + secondNode(0)) / 2;
     m_gravity(1) = (firstNode(1) + secondNode(1)) / 2;
     m_length = sqrt(pow(firstNode(0) - secondNode(0), 2) + pow(firstNode(1) - secondNode(1), 2));
+    m_derivation = 0;
+    m_value = 0;
 }
 
 Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
@@ -74,11 +75,11 @@ void Bem::addPhysics()
                         {
                             Node firstNode, secondNode;
 
-                            firstNode.id = e->vn[i]->id;
+                            firstNode.set_id(e->vn[i]->id);
                             firstNode(0) = e->vn[i]->x;
                             firstNode(1) = e->vn[i]->y;
 
-                            secondNode.id = e->vn[e->next_vert(i)]->id;
+                            secondNode.set_id(e->vn[e->next_vert(i)]->id);
                             secondNode(0) = e->vn[e->next_vert(i)]->x;
                             secondNode(1) = e->vn[e->next_vert(i)]->y;
 
@@ -118,14 +119,14 @@ QString Bem::toString()
         output +=  "\n";
         output += "Edge components: \n";
         output += "First node:";
-        output += QString::number(component.firstNode().id);
+        output += QString::number(component.firstNode().id());
         output += " ";
         output += QString::number(component.firstNode()(0));
         output += " ";
         output += QString::number(component.firstNode()(1));
         output += "\n";
         output += "Second node:";
-        output += QString::number(component.secondNode().id);
+        output += QString::number(component.secondNode().id());
         output += " ";
         output += QString::number(component.secondNode()(0));
         output += " ";
@@ -133,7 +134,6 @@ QString Bem::toString()
         output += "\n";
 
     }
-    qDebug() << output;
     return output;
 }
 
@@ -171,8 +171,8 @@ void Bem::solve()
 {
     qDebug() << "solve";
     int n = m_edgeComponents.count();
-    BemMatrix matrix_H(n, n);
-    BemMatrix matrix_G(n, n);
+    BemMatrix H(n, n);
+    BemMatrix G(n, n);
     for (int i = 0; i < n; i++)
     {
         Node v(m_edgeComponents.at(i).gravity());
@@ -180,22 +180,111 @@ void Bem::solve()
         {
             Node a = m_edgeComponents[j].firstNode();
             Node b = m_edgeComponents[j].secondNode();
-            double Hij = integral(v, a, b);
+            Node integ = integral(v, a, b);
+
+            H(i, j) = integ(0);
+            G(i, j) = integ(1);
+
+            if (i == j)
+                H(i, j) = H(i, j) + 0.5;
         }
+    }
+    qDebug() << H.toString();
+    qDebug() << G.toString();
+
+    // ToDo: Poisson - right side vector
+
+    // Rearranging matrices
+    BemMatrix A(n, n);
+    BemMatrix C(n,n);
+    BemVector rsv(n);
+
+    for (int i = 0; i < n; i++)
+    {
+        if(m_edgeComponents[i].m_isEssential)
+        {
+            for(int j = 0; j < n; j++)
+            {
+                A(j, i) = - G(j, i);
+                C(j, i) = H(j, i);
+            }
+            rsv(i) = m_edgeComponents[i].m_value;
+        }
+
+        else
+        {
+            for(int j = 0; j < n; j++)
+            {
+                A(j, i) = - H(j, i);
+                C(j, i) =   G(j, i);
+            }
+            rsv(i) = m_edgeComponents[i].m_derivation;
+        }
+    }
+
+    // ToDo: Poisson - right side vector
+
+    BemVector b = C * rsv;
+    BemVector results = A.solve(b);
+    qDebug() << results.toString();
+
+    for (int i = 0; i < n; i++)
+    {
+        if(m_edgeComponents[i].m_isEssential)
+        {
+            m_edgeComponents[i].m_derivation = results(i);
+        }
+        else
+        {
+            m_edgeComponents[i].m_value = results(i);
+        }
+    }
+    for (int i = 0; i < n; i++)
+    {
+        qDebug() << m_edgeComponents[i].firstNode().toString();
+        qDebug() << m_edgeComponents[i].secondNode().toString();
+        qDebug() << "Potential: " << m_edgeComponents[i].m_value;
+        qDebug() << "Derivation: " << m_edgeComponents[i].m_derivation << "\n";
     }
 }
 
+Node Bem::integral(Node v, Node a, Node b)
+{    
+    // center
+    Node center = (a + b) / 2;
 
-double Bem::integral(Node v, Node a, Node b)
-{
-    qDebug() << "integral";
-    Node center = (a + b);
-    qDebug() << center.toString();
-    //    Node at = a - center;
-    //    Node bt = b - center;
-    //    qDebug() << center.toString();
-    //    qDebug() << at.toString();
-    return 0;
+    // shift of center of the edge on the position [0, 0]
+    Node at = a - center;
+    Node bt = b - center;
+
+    // shift of reference point
+    Node vt = v - center;
+
+    // rotation
+    double phi = - atan2(bt(1), bt(0));
+    vt.rotate(phi);
+    at.rotate(phi);
+    bt.rotate(phi);
+
+
+    double H;
+    double G;
+
+    if(v.distanceOf(center) < 1e-6)
+    {
+        // singular point
+        H = 0;
+        double m = abs(bt(0));
+        G = -1 / (2 * M_PI) * 2 * (m * log(m) - m);
+    } else
+    {
+        // regular point
+        H = atan((vt(0) - bt(0)) / vt(1)) / (2 * M_PI) - atan((vt(0) - at(0))/vt(1)) / (2 * M_PI);
+        G = (2 * vt(1) * atan((vt(0) - bt(0))/vt(1)) + (vt(0) - bt(0))*(-2 + log(vt(1) * vt(1) + (vt(0) - bt(0)) * (vt(0) - bt(0)))))/(4 * M_PI) -
+                (2 * vt(1) * atan((vt(0) - at(0))/vt(1)) + (vt(0) - at(0))*(-2 + log(vt(1) * vt(1) + (vt(0) - at(0)) * (vt(0) - at(0)))))/(4 * M_PI);
+    }
+
+    return Node(H, G);
 }
 
 template class BemSolution<double>;
