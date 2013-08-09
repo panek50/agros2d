@@ -18,8 +18,10 @@ public:
     BemInterface() { qDebug() << "BemInterface"; }
     virtual void solve(FieldInfo*, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh>);
     virtual Hermes::Hermes2D::ExactSolutionScalar<double>* getSolution();
+
 private:
    Bem * m_bem;
+   BemSolution<double> * m_solution;
 };
 
 #endif // BEM_INTERFACE_H

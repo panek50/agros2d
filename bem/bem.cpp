@@ -20,6 +20,28 @@
 
 #include "bem.h"
 
+Element::Element(Node a, Node b, Node c)
+{
+    m_nodes.append(a);
+    m_nodes.append(b);
+    m_nodes.append(c);
+    m_gravity = (a + b + c) / 3;
+}
+
+Element::Element(QList<Node> nodes)
+{
+    m_nodes = nodes;
+    int i = 0;
+    foreach (Node node, m_nodes) {
+        m_gravity = m_gravity + node;
+        i++;
+    }
+    m_gravity = m_gravity / i;
+
+    m_area = 0;
+    m_f = 0;
+}
+
 EdgeComponent::EdgeComponent(Node firstNode, Node secondNode)
 {
     m_firstNode = firstNode;
@@ -31,19 +53,34 @@ EdgeComponent::EdgeComponent(Node firstNode, Node secondNode)
     m_value = 0;
 }
 
-Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
+bool EdgeComponent::isLyingNode(Node node)
 {
-    qDebug() << "BEM solver";
-    m_fieldInfo = fieldInfo;
-    m_mesh = mesh;
-    m_solution = new BemSolution<double>(mesh);
-    qDebug() << toString();
+
+    double dx = m_secondNode(0) - m_firstNode(0);
+    double dy = m_secondNode(1) - m_firstNode(1);
+
+    Node sp = m_firstNode;
+
+    double t = ((node(0) - sp(0))*dx + (node(1) - sp(1))*dy);
+
+    if (t < 0.0)
+        t = 0.0;
+    else if (t > (dx * dx + dy * dy))
+        t = 1.0;
+    else
+        t /= (dx * dx + dy * dy);
+
+    Node p(sp(0) + t*dx, sp(1) + t*dy);
+
+    Node dv = node - p;
+    return (dv.length() * dv.length() < EPS_ZERO);
 }
 
-// ToDo: probably memory leak
-BemSolution<double> * Bem::getSolution()
-{
-    return m_solution;
+
+Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
+{    
+    m_fieldInfo = fieldInfo;
+    m_mesh = mesh;
 }
 
 
@@ -54,37 +91,32 @@ void Bem::addPhysics()
     int j = 0;
 
 
-    foreach(SceneEdge* sceneEdge, Agros2D::scene()->edges->items())
+    for(int j = 0; j < Agros2D::scene()->edges->items().count(); j++)
     {
-        SceneBoundary *boundary = sceneEdge->marker(m_fieldInfo);
+        SceneBoundary *boundary = Agros2D::scene()->edges->items().at(j)->marker(m_fieldInfo);
         if (boundary && (!boundary->isNone()))
         {
             Module::BoundaryType boundaryType = m_fieldInfo->boundaryType(boundary->type());
-            double value = boundary->value(boundaryType.id()).number();
+            double value= boundary->value(boundaryType.id()).number();
             bool isEssential = (boundaryType.essential().count() > 0);
 
             int nElement = 0;
             for_all_active_elements(e, m_mesh)
             {
                 nElement++;
+                QList<Node> nodes;
                 for (unsigned i = 0; i < e->get_nvert(); i++)
                 {
+                    Node node(e->vn[i]->x, e->vn[i]->y, e->vn[i]->id);
+                    nodes.append(node);
                     if(e->vn[i]->bnd == 1)
                     {
                         if(atoi(m_mesh->get_boundary_markers_conversion().get_user_marker(m_mesh->get_base_edge_node(e, i)->marker).marker.c_str()) == j)
                         {
-                            Node firstNode, secondNode;
-
-                            firstNode.set_id(e->vn[i]->id);
-                            firstNode(0) = e->vn[i]->x;
-                            firstNode(1) = e->vn[i]->y;
-
-                            secondNode.set_id(e->vn[e->next_vert(i)]->id);
-                            secondNode(0) = e->vn[e->next_vert(i)]->x;
-                            secondNode(1) = e->vn[e->next_vert(i)]->y;
+                            Node firstNode(e->vn[i]->x, e->vn[i]->y, e->vn[i]->id);
+                            Node secondNode(e->vn[e->next_vert(i)]->x, e->vn[e->next_vert(i)]->y, e->vn[e->next_vert(i)]->id);
 
                             EdgeComponent component(firstNode, secondNode);
-
                             component.m_element = e;
                             component.m_value = value;
                             component.m_isEssential = isEssential;
@@ -93,11 +125,14 @@ void Bem::addPhysics()
                         }
                     }
                 }
+                Element element(nodes);
+                element.setArea(e->get_area());
+                m_elements.append(element);
+                // ToDo: read material properties
+
             }
-            j++;
             // ToDo: improve
             m_nElement = nElement;
-            qDebug() << nElement;
         }
     }
 }
@@ -140,7 +175,7 @@ QString Bem::toString()
 
 template<typename Scalar>
 BemSolution<Scalar>::BemSolution(MeshSharedPtr mesh) : Hermes::Hermes2D::ExactSolutionScalar<Scalar>(mesh)
-{
+{    
     this->mesh = mesh;
 }
 
@@ -148,7 +183,7 @@ BemSolution<Scalar>::BemSolution(MeshSharedPtr mesh) : Hermes::Hermes2D::ExactSo
 template<typename Scalar>
 Scalar BemSolution<Scalar>::value(double x, double y) const
 {
-    return x*y;
+    return m_bem->potential(x, y);
 }
 
 template<typename Scalar>
@@ -164,12 +199,12 @@ Hermes::Hermes2D::MeshFunction<Scalar>* BemSolution<Scalar>::clone() const
     if(this->sln_type == Hermes::Hermes2D::HERMES_SLN)
         return Hermes::Hermes2D::Solution<Scalar>::clone();
     BemSolution<Scalar>* sln = new BemSolution<Scalar>(this->mesh);
+    sln->setSolver(m_bem);
     return sln;
 }
 
 void Bem::solve()
-{
-    qDebug() << "solve";
+{        
     int n = m_edgeComponents.count();
     BemMatrix H(n, n);
     BemMatrix G(n, n);
@@ -189,10 +224,17 @@ void Bem::solve()
                 H(i, j) = H(i, j) + 0.5;
         }
     }
-    qDebug() << H.toString();
-    qDebug() << G.toString();
 
-    // ToDo: Poisson - right side vector
+    BemVector bp(n);
+    for(int i = 0; i < n; i++ )
+    {
+        for(int j = 0; j < m_elements.count(); j++)
+        {
+            double R = sqrt((m_edgeComponents[i].gravity()(0) - m_elements[j].gravity()(0)) * (m_edgeComponents[i].gravity()(0) - m_elements[j].gravity()(0)) +
+                            (m_edgeComponents[i].gravity()(1) - m_elements[j].gravity()(1)) * (m_edgeComponents[i].gravity()(1) - m_elements[j].gravity()(1)));
+            bp(i) += 1/(2 * M_PI) * m_elements[j].f() * log(R) * m_elements[j].araea();
+        }
+    }
 
     // Rearranging matrices
     BemMatrix A(n, n);
@@ -224,9 +266,9 @@ void Bem::solve()
 
     // ToDo: Poisson - right side vector
 
-    BemVector b = C * rsv;
+    BemVector b = C * rsv + bp;
     BemVector results = A.solve(b);
-    qDebug() << results.toString();
+    // qDebug() << results.toString();
 
     for (int i = 0; i < n; i++)
     {
@@ -239,13 +281,39 @@ void Bem::solve()
             m_edgeComponents[i].m_value = results(i);
         }
     }
-    for (int i = 0; i < n; i++)
+}
+
+double Bem::potential(double x, double y)
+{    
+    double u = 0;
+    Node p(x, y);
+    int n = m_edgeComponents.count();
+    int m = m_elements.count();
+
+
+    for(int i = 0; i < n; i++)
     {
-        qDebug() << m_edgeComponents[i].firstNode().toString();
-        qDebug() << m_edgeComponents[i].secondNode().toString();
-        qDebug() << "Potential: " << m_edgeComponents[i].m_value;
-        qDebug() << "Derivation: " << m_edgeComponents[i].m_derivation << "\n";
+        if(m_edgeComponents[i].isLyingNode(p))
+        {
+            return m_edgeComponents[i].m_value;
+        }
+        Node a = m_edgeComponents[i].firstNode();
+        Node b = m_edgeComponents[i].secondNode();
+        Node integ = integral(p, a, b);
+
+        double H = integ(0);
+        double G = integ(1);
+
+        u = u - H * m_edgeComponents[i].m_value - G * m_edgeComponents[i].m_derivation;
     }
+
+    //    for(int i = 0; i < m; i++)
+    //    {
+    //        double R = sqrt((p(0) - m_elements[i].gravity()(0)) * (p(0) - m_elements[i].gravity()(0)) - (p(1) - m_elements[i].gravity()(1)) * (p(1) - m_elements[i].gravity()(1)));
+    //        u = u - 1 / (2 * M_PI) * m_elements[i].f() * log(R) * m_elements[i].araea();
+    //    }
+
+    return u;
 }
 
 Node Bem::integral(Node v, Node a, Node b)
@@ -270,7 +338,7 @@ Node Bem::integral(Node v, Node a, Node b)
     double H;
     double G;
 
-    if(v.distanceOf(center) < 1e-6)
+    if(v.distanceOf(center) < EPS_ZERO)
     {
         // singular point
         H = 0;

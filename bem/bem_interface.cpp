@@ -20,14 +20,16 @@
 
 
 Hermes::Hermes2D::ExactSolutionScalar<double>* BemInterface::getSolution()
-{
-    return  m_bem->getSolution();
+{        
+    return  m_solution;
 }
 
 void BemInterface::solve(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh> mesh)
-{
-    this->m_bem = new Bem(field, mesh);
-    this->m_bem->addPhysics();
-    qDebug() << "run";
-    this->m_bem->solve();
+{    
+    m_bem = new Bem(field, mesh); // Memmory leak?
+    qDebug() << m_bem;        
+    m_bem->addPhysics();
+    m_bem->solve();
+    m_solution = new BemSolution<double>(mesh); // Memmory leak?
+    m_solution->setSolver(m_bem);
 }

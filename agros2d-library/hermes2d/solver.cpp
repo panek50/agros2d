@@ -576,7 +576,7 @@ void SolverFem<Scalar>::init(Block* block)
 
 template <typename Scalar>
 void SolverFem<Scalar>::initSelectors(Hermes::vector<NormType>& projNormType,
-                                          Hermes::vector<RefinementSelectors::Selector<Scalar> *>& selectors)
+                                      Hermes::vector<RefinementSelectors::Selector<Scalar> *>& selectors)
 {
     // set adaptivity selector
     RefinementSelectors::Selector<Scalar> *select = NULL;
@@ -1265,10 +1265,10 @@ void SolverBem<Scalar>::solveSimple(int timeStep, int adaptivityStep)
     }
 
     // check for DOFs
-    int ndof = Hermes::Hermes2D::Space<Scalar>::get_num_dofs(actualSpaces());
-    SolutionStore::SolutionRunTimeDetails runTime(Agros2D::problem()->actualTimeStepLength(),
-                                                  0.0,
-                                                  Hermes::Hermes2D::Space<double>::get_num_dofs(actualSpaces()));
+        int ndof = Hermes::Hermes2D::Space<Scalar>::get_num_dofs(actualSpaces());
+        SolutionStore::SolutionRunTimeDetails runTime(Agros2D::problem()->actualTimeStepLength(),
+                                                      0.0,
+                                                      Hermes::Hermes2D::Space<double>::get_num_dofs(actualSpaces()));
 
 
     try

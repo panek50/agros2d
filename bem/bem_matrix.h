@@ -86,7 +86,8 @@ class Node : public BemVector
 public:
     Node() : BemVector(2) {}
     Node(BemMatrix m) : BemVector(m) {}
-    Node(double x, double y) : BemVector(2) { m_array[0] = x; m_array[1] = y; }
+    Node(double x, double y, int id) : BemVector(2) { m_array[0] = x; m_array[1] = y; m_id = id; }
+    Node(double x, double y) : BemVector(2) { m_array[0] = x; m_array[1] = y; m_id = 0; }
     Node & operator=(BemVector & v);
     Node & rotate(double phi);
     double distanceOf(const Node & node);
