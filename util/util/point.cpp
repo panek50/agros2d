@@ -283,3 +283,10 @@ bool Point::operator ==(const Point &vec) const
     return (almostEqualRelAndAbs(vec.x, x, POINT_ABS_ZERO, POINT_REL_ZERO)
             && almostEqualRelAndAbs(vec.y, y, POINT_ABS_ZERO, POINT_REL_ZERO));
 }
+
+Point Point::rotate(double angle)
+{   double tmp_x = x * cos(angle) -  y * sin(angle);
+    y = x * sin(angle) +  y * cos(angle);
+    x = tmp_x;
+    return (*this);
+}

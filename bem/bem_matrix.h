@@ -67,6 +67,7 @@ enum BemVectorType
     VectorTypeRow = 1
 };
 
+// ToDo : inheritance from matrix is to slow repaire
 class BemVector : public BemMatrix
 {
 public:    
@@ -79,25 +80,6 @@ public:
 private:
     BemVectorType m_type;
 };
-
-
-class Node : public BemVector
-{
-public:
-    Node() : BemVector(2) {}
-    Node(BemMatrix m) : BemVector(m) {}
-    Node(double x, double y, int id) : BemVector(2) { m_array[0] = x; m_array[1] = y; m_id = id; }
-    Node(double x, double y) : BemVector(2) { m_array[0] = x; m_array[1] = y; m_id = 0; }
-    Node & operator=(BemVector & v);
-    Node & rotate(double phi);
-    double distanceOf(const Node & node);
-    int id() { return m_id; }
-    void set_id(int id) { m_id = id; }
-
-private:
-    int m_id;
-};
-
 
 Q_DECLARE_METATYPE(BemMatrix);
 

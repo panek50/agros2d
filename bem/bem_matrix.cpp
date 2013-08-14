@@ -259,33 +259,3 @@ double BemVector::length() const
    return sqrt(length);
 }
 
-
-Node & Node::operator = (BemVector & v)
-{
-    if(column() != 1)
-        throw BemException();
-
-    for(int i = 0; i < row(); i++)
-    {
-        (*this)(i) = v(i);
-    }
-    return (*this);
-}
-
-Node & Node::rotate(double phi)
-{
-    BemMatrix m_transform(2,2);
-    m_transform(0, 0) = cos(phi);
-    m_transform(0, 1) = -sin(phi);
-    m_transform(1, 0) = sin(phi);
-    m_transform(1, 1) = cos(phi);
-    (*this) = m_transform * (*this);
-    return (*this);
-}
-
-double Node::distanceOf(const Node & node)
-{
-    BemVector dist = (*this) - node;
-    return dist.length();
-}
-

@@ -16,18 +16,18 @@
 class Element
 {
 public:
-    Element (QList<Node> nodes);
-    Element (Node a, Node b, Node c);
+    Element (QList<Point> nodes);
+    Element (Point a, Point b, Point c);
     int id() const { return m_id; }
-    Node gravity() { return m_gravity; }
+    Point gravity() { return m_gravity; }
     double araea() { return m_area;}
     void setArea(double area) { m_area = area; }
     double f() { return m_f; }
 
 private:
-    QList<Node> m_nodes;
+    QList<Point> m_points;
     int m_id;
-    Node m_gravity;
+    Point m_gravity;
     double m_area;
     double m_f;
 };
@@ -37,16 +37,16 @@ class EdgeComponent
 {
 
 public:
-    EdgeComponent(Node firstNode, Node secondNode);
+    EdgeComponent(Point firstPoint, Point secondPoint);
     double elementArea() {return m_element->area;}
     int id() { return m_id; }
 
     // ToDo: make it private
     Hermes::Hermes2D::Element * m_element;
-    Node firstNode() { return m_firstNode; }
-    Node secondNode() { return m_secondNode; }    
-    Node gravity() const { return m_gravity;}
-    bool isLyingNode (Node node);
+    Point firstPoint() { return m_firstPoint; }
+    Point secondPoint() { return m_secondPoint; }
+    Point gravity() const { return m_gravity;}
+    bool isLyingPoint (Point node);
     QString boundaryType;
     double m_value;
     double m_derivation;
@@ -57,9 +57,9 @@ public:
 
 private:
     int m_id;
-    Node m_firstNode;
-    Node m_secondNode;
-    Node m_gravity;
+    Point m_firstPoint;
+    Point m_secondPoint;
+    Point m_gravity;
 };
 
 
@@ -68,13 +68,13 @@ class Bem
 
 public:
     Bem(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh> mesh);
-    ~Bem() { qDebug() << "destructor BEM"; }
+    ~Bem() {}
     void readMesh();
     void addPhysics();
     void assemblyMatrices();
     void solve();
     QString toString();
-    Node integral(Node v, Node a, Node b);
+    Point integral(Point v, Point a, Point b);
     double potential(double x, double y);
 
     // Todo: make it private
@@ -107,7 +107,6 @@ protected:
     // virtual void precalculate(int order, int mask) { qDebug() << "OK";}
     double constant;
     Bem * m_bem;
-
 };
 
 

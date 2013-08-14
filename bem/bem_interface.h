@@ -15,7 +15,7 @@ class BemInterface: public QObject, SolverInterface
     Q_PLUGIN_METADATA(IID "org.hpfem.agros2d.BemInterface" FILE "")
 #endif
 public:
-    BemInterface() { qDebug() << "BemInterface"; }
+    BemInterface() {}
     virtual void solve(FieldInfo*, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh>);
     virtual Hermes::Hermes2D::ExactSolutionScalar<double>* getSolution();
 
