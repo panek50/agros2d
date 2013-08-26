@@ -1369,7 +1369,7 @@ void SolverBem<Scalar>::clearActualSpaces()
 template class LinearSolverContainer<double>;
 template class NewtonSolverContainer<double>;
 template class PicardSolverContainer<double>;
-template class Solver<double>;
+template class ProblemSolver<double>;
 template class SolverFem<double>;
 template class SolverBem<double>;
 

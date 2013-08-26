@@ -223,8 +223,8 @@ private:
     Block* m_block;
 
     QSharedPointer<HermesSolverContainer<Scalar> > m_hermesSolverContainer;
-
     Hermes::vector<SpaceSharedPtr<Scalar> > m_actualSpaces;
+
 
     QString m_solverID;
     QString m_solverName;
@@ -252,12 +252,13 @@ template <typename Scalar>
 class SolverBem : public ProblemSolver<Scalar>
 {
 public:
-    SolverBem() : m_hermesSolverContainer(NULL) {}    
+    SolverBem() : m_hermesSolverContainer(NULL) {}
+    ~SolverBem() {}
 
 
     virtual void init(Block* block);
     virtual void solveInitialTimeStep() {assert(0);}
-    virtual void createInitialSpace();    
+    virtual void createInitialSpace();
 
     // returns the value of the next time step lenght (for transient problems), using BDF2 approximation
     virtual TimeStepInfo estimateTimeStepLength(int timeStep, int adaptivityStep) {assert(0);}
