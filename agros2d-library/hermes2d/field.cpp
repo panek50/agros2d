@@ -89,7 +89,14 @@ void FieldInfo::setInitialMesh(MeshSharedPtr mesh)
     m_initialMesh = mesh;
 }
 
-void FieldInfo::setAnalysisType(AnalysisType at)
+
+
+void FieldInfo::setSolutionMethod(const SolutionMethod solutionMethod)
+{
+    m_solutionMethod = solutionMethod;
+}
+
+void FieldInfo::setAnalysisType(const AnalysisType analysisType)
 {
     m_analysisType = at;
 

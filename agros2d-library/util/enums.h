@@ -33,6 +33,12 @@ enum CoordinateType
     CoordinateType_Axisymmetric = 1
 };
 
+enum SolutionMethod
+{
+    SolutionMethod_Fem,
+    SolutionMethod_Bem
+};
+
 enum AnalysisType
 {
     AnalysisType_Undefined = -1,

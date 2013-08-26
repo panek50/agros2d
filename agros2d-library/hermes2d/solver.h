@@ -177,27 +177,99 @@ private:
 };
 
 // solve
+
 template <typename Scalar>
 class ProblemSolver
 {
 public:
-    ProblemSolver() : m_hermesSolverContainer(NULL) {}
-    ~ProblemSolver();
-
-    void init(Block* block);
-
-    void createInitialSpace();
-    void solveInitialTimeStep();
+    virtual void init(Block* block) = 0;
+    virtual void createInitialSpace() = 0;
+    virtual void solveInitialTimeStep() = 0;
 
     // returns the value of the next time step lenght (for transient problems), using BDF2 approximation
-    TimeStepInfo estimateTimeStepLength(int timeStep, int adaptivityStep);
+    virtual NextTimeStep estimateTimeStepLength(int timeStep, int adaptivityStep) = 0;
 
-    void solveSimple(int timeStep, int adaptivityStep);
-    void solveReferenceAndProject(int timeStep, int adaptivityStep);
-    bool createAdaptedSpace(int timeStep, int adaptivityStep, bool forceAdaptation = false);
+    virtual void solveSimple(int timeStep, int adaptivityStep) = 0;
+    virtual void solveReferenceAndProject(int timeStep, int adaptivityStep) = 0;
+    virtual bool createAdaptedSpace(int timeStep, int adaptivityStep, bool forceAdaptation = false) = 0;
 
     // to be used in solveAdaptivityStep
-    void resumeAdaptivityProcess(int adaptivityStep);
+    virtual void resumeAdaptivityProcess(int adaptivityStep) = 0;
+};
+
+template <typename Scalar>
+class SolverFem : public Solver<Scalar>
+{
+public:
+    SolverFem() : m_hermesSolverContainer(NULL) {}
+    ~SolverFem();
+
+    virtual void init(Block* block);
+
+    virtual void createInitialSpace();
+    virtual void solveInitialTimeStep();
+
+    // returns the value of the next time step lenght (for transient problems), using BDF2 approximation
+    virtual NextTimeStep estimateTimeStepLength(int timeStep, int adaptivityStep);
+
+    virtual void solveSimple(int timeStep, int adaptivityStep);
+    virtual void solveReferenceAndProject(int timeStep, int adaptivityStep);
+    virtual bool createAdaptedSpace(int timeStep, int adaptivityStep, bool forceAdaptation = false);
+
+    // to be used in solveAdaptivityStep
+    virtual void resumeAdaptivityProcess(int adaptivityStep);
+
+private:
+    Block* m_block;
+
+    HermesSolverContainer<Scalar> *m_hermesSolverContainer;
+
+    Hermes::vector<SpaceSharedPtr<Scalar> > m_actualSpaces;
+
+    QString m_solverID;
+    QString m_solverName;
+    QString m_solverCode;
+
+    // elapsed time
+    double m_elapsedTime;
+
+    // to be used in advanced time step adaptivity
+    double m_averageErrorToLenghtRatio;
+
+    void initSelectors(Hermes::vector<Hermes::Hermes2D::ProjNormType>& projNormType,
+                       Hermes::vector<Hermes::Hermes2D::RefinementSelectors::Selector<Scalar> *>& selectors);
+    void deleteSelectors(Hermes::vector<Hermes::Hermes2D::RefinementSelectors::Selector<Scalar> *>& selectors);
+
+    Scalar *solveOneProblem(Scalar* solutionVector, Hermes::vector<SpaceSharedPtr<Scalar> > spaces, int adaptivityStep, Hermes::vector<MeshFunctionSharedPtr<Scalar> > previousSolution = Hermes::vector<MeshFunctionSharedPtr<Scalar> >());
+
+    void clearActualSpaces();
+    void setActualSpaces(Hermes::vector<SpaceSharedPtr<Scalar> > spaces);
+    Hermes::vector<SpaceSharedPtr<Scalar> > actualSpaces() { return m_actualSpaces;}
+    Hermes::vector<SpaceSharedPtr<Scalar> > deepMeshAndSpaceCopy(Hermes::vector<SpaceSharedPtr<Scalar> > spaces, bool createReference);
+};
+
+template <typename Scalar>
+class SolverBem : public Solver<Scalar>
+{
+public:
+    SolverBem() : m_hermesSolverContainer(NULL) {}
+    ~SolverBem();
+
+
+    virtual void init(Block* block);
+
+    virtual void createInitialSpace() {;}
+    virtual void solveInitialTimeStep() {assert(0);}
+
+    // returns the value of the next time step lenght (for transient problems), using BDF2 approximation
+    virtual TimeStepInfo estimateTimeStepLength(int timeStep, int adaptivityStep) {assert(0);}
+
+    virtual void solveSimple(int timeStep, int adaptivityStep);
+    virtual void solveReferenceAndProject(int timeStep, int adaptivityStep) {assert(0);}
+    virtual bool createAdaptedSpace(int timeStep, int adaptivityStep, bool forceAdaptation = false) {assert(0);}
+
+    // to be used in solveAdaptivityStep
+    virtual void resumeAdaptivityProcess(int adaptivityStep) {assert(0);}
 
 private:
     Block* m_block;

@@ -21,9 +21,9 @@
 #define FIELD_H
 
 #include "util.h"
-#include "value.h"
-#include "sceneedge.h"
-#include "scenelabel.h"
+#include "../agros2d-library/value.h"
+#include "../agros2d-library/sceneedge.h"
+#include "../agros2d-library/scenelabel.h"
 
 namespace Module
 {
@@ -58,6 +58,7 @@ public:
     inline MeshSharedPtr initialMesh() const { return m_initialMesh; }
     inline void clearInitialMesh() { m_initialMesh = MeshSharedPtr();}
     void setInitialMesh(MeshSharedPtr mesh);
+
 
     enum Type
     {
@@ -95,6 +96,10 @@ public:
     };
 
     // analysis type
+
+    SolutionMethod solutionMethod() const { return m_solutionMethod; }
+    void setSolutionMethod (const SolutionMethod solutionMethod);
+
     AnalysisType analysisType() const { return m_analysisType; }
     void setAnalysisType(const AnalysisType analysisType);
 
@@ -241,6 +246,9 @@ private:
     AnalysisType m_analysisType;
     // number of solutions cache
     int m_numberOfSolutions;
+
+    // solution method
+    SolutionMethod m_solutionMethod;
 
     // linearity
     LinearityType m_linearityType;

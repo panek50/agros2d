@@ -765,6 +765,7 @@ void Problem::solveAction()
     Agros2D::log()->printMessage(QObject::tr("Problem"), QObject::tr("Solving problem"));
 
     foreach (Block* block, m_blocks)
+
     {
         QSharedPointer<ProblemSolver<double> > solver = block->prepareSolver();
         if (solver.isNull())

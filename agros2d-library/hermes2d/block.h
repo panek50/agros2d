@@ -36,6 +36,9 @@ template <typename Scalar>
 class ProblemSolver;
 
 template <typename Scalar>
+class SolverFem;
+
+template <typename Scalar>
 class WeakFormAgros;
 
 
@@ -58,7 +61,12 @@ public:
     LinearityType linearityType() const;
     bool isTransient() const;
 
+
     Hermes::MatrixSolverType matrixSolver() const;
+
+    // ToDo: implement into GUI
+    bool isBem() const;
+
 
     // returns minimal time skip of individual fields
     double timeSkip() const;

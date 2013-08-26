@@ -143,7 +143,19 @@ void Block::setWeakForm(WeakFormAgros<double> *wf)
 
 QSharedPointer<ProblemSolver<double> > Block::prepareSolver()
 {
-    QSharedPointer<ProblemSolver<double> > solver = QSharedPointer<ProblemSolver<double> >(new ProblemSolver<double>());
+
+    QSharedPointer<ProblemSolver<double> > solver; QSharedPointer<ProblemSolver<double> >(new ProblemSolver<double>());
+
+    Solver<double> *solver;
+    if(this->isBem())
+    {
+        solver = QSharedPointer<SolverBem<double> >(new SolverBem<double>());
+    }
+    else
+    {
+        solver = QSharedPointer<SolverFem<double> >(new SolverFem<double>());
+    }
+
 
     foreach (Field* field, m_fields)
     {
@@ -157,6 +169,18 @@ QSharedPointer<ProblemSolver<double> > Block::prepareSolver()
     solver.data()->init(this);
 
     return solver;
+}
+
+bool Block::isBem() const
+{
+    foreach (Field *field, m_fields)
+    {
+        if (field->fieldInfo()->solutionMethod() == SolutionMethod_Bem)
+            return true;
+    }
+
+    return true;
+    // return false;
 }
 
 bool Block::isTransient() const
