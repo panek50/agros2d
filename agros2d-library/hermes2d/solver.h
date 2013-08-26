@@ -198,7 +198,7 @@ public:
 };
 
 template <typename Scalar>
-class SolverFem : public Solver<Scalar>
+class SolverFem : public ProblemSolver<Scalar>
 {
 public:
     SolverFem() : m_hermesSolverContainer(NULL) {}
@@ -222,7 +222,7 @@ public:
 private:
     Block* m_block;
 
-    HermesSolverContainer<Scalar> *m_hermesSolverContainer;
+    QSharedPointer<HermesSolverContainer<Scalar> > m_hermesSolverContainer;
 
     Hermes::vector<SpaceSharedPtr<Scalar> > m_actualSpaces;
 
@@ -236,11 +236,11 @@ private:
     // to be used in advanced time step adaptivity
     double m_averageErrorToLenghtRatio;
 
-    void initSelectors(Hermes::vector<Hermes::Hermes2D::ProjNormType>& projNormType,
+    void initSelectors(Hermes::vector<Hermes::Hermes2D::NormType>& projNormType,
                        Hermes::vector<Hermes::Hermes2D::RefinementSelectors::Selector<Scalar> *>& selectors);
     void deleteSelectors(Hermes::vector<Hermes::Hermes2D::RefinementSelectors::Selector<Scalar> *>& selectors);
 
-    Scalar *solveOneProblem(Scalar* solutionVector, Hermes::vector<SpaceSharedPtr<Scalar> > spaces, int adaptivityStep, Hermes::vector<MeshFunctionSharedPtr<Scalar> > previousSolution = Hermes::vector<MeshFunctionSharedPtr<Scalar> >());
+    Scalar *solveOneProblem(Hermes::vector<SpaceSharedPtr<Scalar> > spaces, int adaptivityStep, Hermes::vector<MeshFunctionSharedPtr<Scalar> > previousSolution = Hermes::vector<MeshFunctionSharedPtr<Scalar> >());
 
     void clearActualSpaces();
     void setActualSpaces(Hermes::vector<SpaceSharedPtr<Scalar> > spaces);
@@ -249,16 +249,15 @@ private:
 };
 
 template <typename Scalar>
-class SolverBem : public Solver<Scalar>
+class SolverBem : public ProblemSolver<Scalar>
 {
 public:
-    SolverBem() : m_hermesSolverContainer(NULL) {}
-    ~SolverBem();
+    SolverBem() : m_hermesSolverContainer(NULL) {}    
 
 
     virtual void init(Block* block);
     virtual void solveInitialTimeStep() {assert(0);}
-    virtual void createInitialSpace();
+    virtual void createInitialSpace();    
 
     // returns the value of the next time step lenght (for transient problems), using BDF2 approximation
     virtual TimeStepInfo estimateTimeStepLength(int timeStep, int adaptivityStep) {assert(0);}

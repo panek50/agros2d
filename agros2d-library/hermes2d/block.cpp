@@ -144,9 +144,8 @@ void Block::setWeakForm(WeakFormAgros<double> *wf)
 QSharedPointer<ProblemSolver<double> > Block::prepareSolver()
 {
 
-    QSharedPointer<ProblemSolver<double> > solver; QSharedPointer<ProblemSolver<double> >(new ProblemSolver<double>());
+    QSharedPointer<ProblemSolver<double> > solver;
 
-    Solver<double> *solver;
     if(this->isBem())
     {
         solver = QSharedPointer<SolverBem<double> >(new SolverBem<double>());

@@ -96,7 +96,7 @@ void FieldInfo::setSolutionMethod(const SolutionMethod solutionMethod)
     m_solutionMethod = solutionMethod;
 }
 
-void FieldInfo::setAnalysisType(const AnalysisType analysisType)
+void FieldInfo::setAnalysisType(const AnalysisType at)
 {
     m_analysisType = at;
 
