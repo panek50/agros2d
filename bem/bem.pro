@@ -1,35 +1,84 @@
-# agros2d - hp-FEM multiphysics application based on Hermes2D library
-OBJECTS_DIR = build
-MOC_DIR = build
+QT += core opengl svg gui network xml webkit xmlpatterns widgets webkitwidgets
 
 TEMPLATE = lib
+CONFIG += plugin
 
-DEFINES += BEM_LIBRARY
+OBJECTS_DIR = ../build
+MOC_DIR = ../build
 
-SOURCES += bem.cpp
-SOURCES += algebra.cpp
+DEFINES += WITH_PARALUTION
+INCLUDEPATH += ../3rdparty/paralution/src
+DEFINES += WITH_BSON
+INCLUDEPATH += ../3rdparty/bson
 
-HEADERS += bem.h
-HEADERS += algebra.h
+INCLUDEPATH += ../hermes2d/include \
+    ../hermes_common/include \
+    ../3rdparty/dxflib
 
-INCLUDEPATH += ../hermes2d/include
-INCLUDEPATH += ../hermes2d/include/mesh/
-INCLUDEPATH += ../hermes_common/include
-INCLUDEPATH += ../pythonlab-library
 INCLUDEPATH += ../util
-INCLUDEPATH += ../agros2d-library/
+INCLUDEPATH += ../hermes2d/include
+INCLUDEPATH += ../hermes_common/include
+INCLUDEPATH += ../agros2d-library
 
-LIBS += -lblas
-LIBS += -llapacke
-
-
-linux-g++|linux-g++-64|linux-g++-32|linux-clang {
-    # DEFINES += WITH_UNITY
-    TARGET = ../libs/bem
-
-    CONFIG += warn_off
-    # QMAKE_CXXFLAGS += -Wun
+linux-clang {
+    INCLUDEPATH += ../../hermes2d/omp
 }
 
-include(../agros2d.pri)
-include(../agros2d_version.pri)
+linux-g++|linux-g++-64|linux-g++-32|linux-clang {
+    CONFIG += warn_off
+
+    INCLUDEPATH += /usr/include/google
+    INCLUDEPATH += /usr/include/suitesparse
+
+    LIBS += -L../../libs
+}
+
+win32-msvc2010 {
+    QMAKE_CXXFLAGS += /MP /openmp /Zc:wchar_t /Zc:wchar_t
+    QMAKE_LFLAGS += /NODEFAULTLIB:libcmtd /NODEFAULTLIB:libcmt
+    QMAKE_CXXFLAGS_RELEASE += -MD
+    QMAKE_CXXFLAGS_DEBUG += -MDd
+
+    DEFINES += XERCES_STATIC_LIBRARY
+    DEFINES += _WINDOWS
+
+    INCLUDEPATH += c:/hpfem/hermes/dependencies/include
+    INCLUDEPATH += d:/hpfem/hermes/dependencies/include
+
+    SOURCES      += ../../resources_source/classes/module_xml.cpp
+    HEADERS      += ../../resources_source/classes/module_xml.h
+
+    LIBS += -L../../libs
+    LIBS += -L../..
+
+    LIBS += -Lc:/hpfem/hermes/dependencies/lib
+    LIBS += -Ld:/hpfem/hermes/dependencies/lib
+    LIBS += -Lc:/Python27/libs
+
+    LIBS += -lvcomp
+    LIBS += -lpython27
+    LIBS += -llibumfpack
+    LIBS += -llibamd
+    LIBS += -lpthreadVCE2
+    LIBS += -ladvapi32
+    LIBS += -lws2_32
+    LIBS += -lpsapi
+
+    CONFIG(release, debug|release) {
+        LIBS += -lxerces-c_static_3
+    }
+    CONFIG(debug, debug|release) {
+        LIBS += -lxerces-c_static_3D
+    }
+}
+
+# interface
+HEADERS      += bem_interface.h
+SOURCES      += bem_interface.cpp
+
+# headers and sources
+HEADERS      += bem.h
+SOURCES      += bem.cpp
+
+TARGET = agros2d_solver_bem
+DESTDIR = ../libs

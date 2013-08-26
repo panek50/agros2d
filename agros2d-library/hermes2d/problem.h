@@ -4,7 +4,6 @@
 #include "util.h"
 #include "value.h"
 #include "solutiontypes.h"
-#include "../../bem/bem.h"
 
 class FieldInfo;
 class CouplingInfo;

@@ -36,7 +36,7 @@
 #include "plugin_interface.h"
 #include "logview.h"
 #include "bdf2.h"
-#include "../bem/bem.h"
+
 
 using namespace Hermes::Hermes2D;
 
@@ -1253,28 +1253,33 @@ void SolverBem<Scalar>::solveSimple(int timeStep, int adaptivityStep)
 
     qDebug() << m_solverID;
 
-    MeshSharedPtr mesh = MeshSharedPtr(new Mesh());
-    Bem bem(m_block->fields().at(0)->fieldInfo(), mesh);
+    Hermes::vector<SpaceSharedPtr<Scalar> > spaces = actualSpaces();
+
+    QPluginLoader * loader;
+    SolverInterface * solver;
+    if (QFile::exists(QString("%1/libs/libagros2d_solver_bem.so").arg(datadir())))
+    {
+        loader = new QPluginLoader(QString("%1/libs/libagros2d_solver_bem.so").arg(datadir()));
+        solver = qobject_cast<SolverInterface *>(loader->instance());
+        solver->solve(m_block->fields().at(0)->fieldInfo(), m_block->fields().at(0)->fieldInfo()->initialMesh());
+    }
+
     // check for DOFs
     int ndof = Hermes::Hermes2D::Space<Scalar>::get_num_dofs(actualSpaces());
     SolutionStore::SolutionRunTimeDetails runTime(Agros2D::problem()->actualTimeStepLength(),
                                                   0.0,
                                                   Hermes::Hermes2D::Space<double>::get_num_dofs(actualSpaces()));
-   // if (ndof == 0)
-   // {
-   //     Agros2D::log()->printDebug(m_solverID, QObject::tr("DOF is zero"));
-   //     throw(AgrosSolverException("DOF is zero"));
-   // }
 
-    // cout << QString("updating with time %1\n").arg(Agros2D::problem()->actualTime()).toStdString() << endl;
-
-    Hermes::vector<SpaceSharedPtr<Scalar> > spaces = actualSpaces();
 
     try
     {
         // output
         Hermes::vector<MeshFunctionSharedPtr<Scalar> > solutions;
-        solutions.push_back(MeshFunctionSharedPtr<Scalar>(new BemSolution<double>(spacesMeshes(actualSpaces()).at(0))));
+
+        // ToDo: repair
+
+        Hermes::Hermes2D::Solution<Scalar>* solution = solver->getSolution();
+        solutions.push_back(MeshFunctionSharedPtr<Scalar>(solution));
 
         BlockSolutionID solutionID(m_block, timeStep, adaptivityStep, SolutionMode_Normal);
 
@@ -1372,4 +1377,3 @@ template class PicardSolverContainer<double>;
 template class ProblemSolver<double>;
 template class SolverFem<double>;
 template class SolverBem<double>;
-

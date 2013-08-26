@@ -20,8 +20,13 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
+#include <QtPlugin>
+
 #include "util.h"
 #include "solutiontypes.h"
+#include "solver_interface.h"
+
+
 
 class Block;
 class FieldInfo;
@@ -298,6 +303,5 @@ private:
     Hermes::vector<SpaceSharedPtr<Scalar> > actualSpaces() { return m_actualSpaces;}
     Hermes::vector<SpaceSharedPtr<Scalar> > deepMeshAndSpaceCopy(Hermes::vector<SpaceSharedPtr<Scalar> > spaces, bool createReference);
 };
-
 
 #endif // SOLVER_H
