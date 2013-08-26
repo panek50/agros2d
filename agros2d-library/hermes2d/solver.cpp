@@ -682,6 +682,79 @@ Hermes::vector<SpaceSharedPtr<Scalar> > SolverFem<Scalar>::deepMeshAndSpaceCopy(
     return newSpaces;
 }
 
+
+template <typename Scalar>
+void SolverFem<Scalar>::createInitialSpace()
+{
+    // read mesh from file
+    if (!Agros2D::problem()->isMeshed())
+        throw AgrosSolverException(QObject::tr("Problem is not meshed"));
+
+     clearActualSpaces();
+
+     m_block->createBoundaryConditions();
+
+    foreach(Field* field, m_block->fields())
+    {
+        FieldInfo* fieldInfo = field->fieldInfo();
+
+
+        // create copy of initial mesh, for all components only one mesh
+        //        MeshSharedPtr oneInitialMesh(new Hermes::Hermes2D::Mesh());
+        //        oneInitialMesh->copy(fieldInfo->initialMesh());
+
+        QMap<int, Module::Space> fieldSpaces = fieldInfo->spaces();
+
+        // create space
+        for (int i = 0; i < fieldInfo->numberOfSolutions(); i++)
+        {
+            // spaces in module are numbered from 1!
+            int spaceI = i + 1;
+            assert(fieldSpaces.contains(spaceI));
+
+            Space<Scalar> *oneSpace = NULL;
+            switch (fieldSpaces[spaceI].type())
+            {
+            case HERMES_L2_SPACE:
+                oneSpace = new L2Space<Scalar>(fieldInfo->initialMesh(), fieldInfo->value(FieldInfo::SpacePolynomialOrder).toInt() + fieldInfo->spaces()[i+1].orderAdjust());
+                break;
+            case HERMES_H1_SPACE:
+                oneSpace = new H1Space<Scalar>(fieldInfo->initialMesh(), m_block->bcs().at(i + m_block->offset(field)), fieldInfo->value(FieldInfo::SpacePolynomialOrder).toInt() + fieldInfo->spaces()[i+1].orderAdjust());
+                break;
+            case HERMES_HCURL_SPACE:
+                oneSpace = new HcurlSpace<Scalar>(fieldInfo->initialMesh(), m_block->bcs().at(i + m_block->offset(field)), fieldInfo->value(FieldInfo::SpacePolynomialOrder).toInt() + fieldInfo->spaces()[i+1].orderAdjust());
+                break;
+            case HERMES_HDIV_SPACE:
+                oneSpace = new HdivSpace<Scalar>(fieldInfo->initialMesh(), m_block->bcs().at(i + m_block->offset(field)), fieldInfo->value(FieldInfo::SpacePolynomialOrder).toInt() + fieldInfo->spaces()[i+1].orderAdjust());
+                break;
+            default:
+                assert(0);
+                break;
+            }
+
+            // cout << "Space " << i << "dofs: " << actualSpace->get_num_dofs() << endl;
+            m_actualSpaces.push_back(oneSpace);
+
+            // set order by element
+            foreach(SceneLabel* label, Agros2D::scene()->labels->items())
+            {
+                if (!label->marker(fieldInfo)->isNone() &&
+                        (fieldInfo->labelPolynomialOrder(label) != fieldInfo->value(FieldInfo::SpacePolynomialOrder).toInt()))
+                {
+                    actualSpaces().at(i)->set_uniform_order(fieldInfo->labelPolynomialOrder(label),
+                                                            QString::number(Agros2D::scene()->labels->items().indexOf(label)).toStdString());
+                }
+            }
+        }
+
+        // delete temp initial mesh
+        // delete initialMesh;
+    }
+
+    assert(!m_hermesSolverContainer);
+    m_hermesSolverContainer = HermesSolverContainer<Scalar>::factory(m_block);
+}
+
 template <typename Scalar>
 void SolverFem<Scalar>::setActualSpaces(Hermes::vector<SpaceSharedPtr<Scalar> > spaces)
 {
@@ -973,6 +1046,7 @@ void SolverFem<Scalar>::createInitialSpace()
     m_hermesSolverContainer->setTableSpaces()->set_spaces(m_actualSpaces);
 }
 
+
 template <typename Scalar>
 void SolverFem<Scalar>::solveReferenceAndProject(int timeStep, int adaptivityStep)
 {
@@ -1252,7 +1326,116 @@ void SolverBem<Scalar>::solveSimple(int timeStep, int adaptivityStep)
 
     qDebug() << m_solverID;
     Bem bem(m_block->fields().at(0)->fieldInfo());
+    MeshSharedPtr mesh = MeshSharedPtr(new Mesh());
 
+    // check for DOFs
+    int ndof = Hermes::Hermes2D::Space<Scalar>::get_num_dofs(actualSpaces());
+    SolutionStore::SolutionRunTimeDetails runTime(Agros2D::problem()->actualTimeStepLength(),
+                                                  0.0,
+                                                  Hermes::Hermes2D::Space<double>::get_num_dofs(actualSpaces()));
+   // if (ndof == 0)
+   // {
+   //     Agros2D::log()->printDebug(m_solverID, QObject::tr("DOF is zero"));
+   //     throw(AgrosSolverException("DOF is zero"));
+   // }
+
+    // cout << QString("updating with time %1\n").arg(Agros2D::problem()->actualTime()).toStdString() << endl;
+
+    Hermes::vector<SpaceSharedPtr<Scalar> > spaces = actualSpaces();
+
+    try
+    {
+        // output
+        Hermes::vector<MeshFunctionSharedPtr<Scalar> > solutions;
+        solutions.push_back(MeshFunctionSharedPtr<Scalar>(new BemSolution<double>(mesh)));
+
+        BlockSolutionID solutionID(m_block, timeStep, adaptivityStep, SolutionMode_Normal);
+
+        Agros2D::solutionStore()->addSolution(solutionID, MultiArray<Scalar>(actualSpaces(), solutions), runTime);
+    }
+    catch (AgrosSolverException e)
+    {
+        throw AgrosSolverException(QObject::tr("Solver failed: %1").arg(e.toString()));
+    }
+
+}
+
+template <typename Scalar>
+void SolverBem<Scalar>::createInitialSpace()
+{
+    // read mesh from file
+    if (!Agros2D::problem()->isMeshed())
+        throw AgrosSolverException(QObject::tr("Problem is not meshed"));
+
+    clearActualSpaces();
+
+    m_block->createBoundaryConditions();
+
+    foreach(Field* field, m_block->fields())
+    {
+        FieldInfo* fieldInfo = field->fieldInfo();
+
+
+        // create copy of initial mesh, for all components only one mesh
+        //        MeshSharedPtr oneInitialMesh(new Hermes::Hermes2D::Mesh());
+        //        oneInitialMesh->copy(fieldInfo->initialMesh());
+
+        QMap<int, Module::Space> fieldSpaces = fieldInfo->spaces();
+
+        // create space
+        for (int i = 0; i < fieldInfo->numberOfSolutions(); i++)
+        {
+            // spaces in module are numbered from 1!
+            int spaceI = i + 1;
+            assert(fieldSpaces.contains(spaceI));
+
+            Space<Scalar> *oneSpace = NULL;
+            switch (fieldSpaces[spaceI].type())
+            {
+            case HERMES_L2_SPACE:
+                oneSpace = new L2Space<Scalar>(fieldInfo->initialMesh(), fieldInfo->value(FieldInfo::SpacePolynomialOrder).toInt() + fieldInfo->spaces()[i+1].orderAdjust());
+                break;
+            case HERMES_H1_SPACE:
+                oneSpace = new H1Space<Scalar>(fieldInfo->initialMesh(), m_block->bcs().at(i + m_block->offset(field)), fieldInfo->value(FieldInfo::SpacePolynomialOrder).toInt() + fieldInfo->spaces()[i+1].orderAdjust());
+                break;
+            case HERMES_HCURL_SPACE:
+                oneSpace = new HcurlSpace<Scalar>(fieldInfo->initialMesh(), m_block->bcs().at(i + m_block->offset(field)), fieldInfo->value(FieldInfo::SpacePolynomialOrder).toInt() + fieldInfo->spaces()[i+1].orderAdjust());
+                break;
+            case HERMES_HDIV_SPACE:
+                oneSpace = new HdivSpace<Scalar>(fieldInfo->initialMesh(), m_block->bcs().at(i + m_block->offset(field)), fieldInfo->value(FieldInfo::SpacePolynomialOrder).toInt() + fieldInfo->spaces()[i+1].orderAdjust());
+                break;
+            default:
+                assert(0);
+                break;
+            }
+
+            // cout << "Space " << i << "dofs: " << actualSpace->get_num_dofs() << endl;
+            m_actualSpaces.push_back(oneSpace);
+
+            // set order by element
+            foreach(SceneLabel* label, Agros2D::scene()->labels->items())
+            {
+                if (!label->marker(fieldInfo)->isNone() &&
+                        (fieldInfo->labelPolynomialOrder(label) != fieldInfo->value(FieldInfo::SpacePolynomialOrder).toInt()))
+                {
+                    actualSpaces().at(i)->set_uniform_order(fieldInfo->labelPolynomialOrder(label),
+                                                            QString::number(Agros2D::scene()->labels->items().indexOf(label)).toStdString());
+                }
+            }
+        }
+
+        // delete temp initial mesh
+        // delete initialMesh;
+    }
+
+    assert(!m_hermesSolverContainer);
+    m_hermesSolverContainer = HermesSolverContainer<Scalar>::factory(m_block);
+}
+
+template <typename Scalar>
+void SolverBem<Scalar>::clearActualSpaces()
+{
+    m_actualSpaces.clear();
 }
 
 //template class VectorStore<double>;

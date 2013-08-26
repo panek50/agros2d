@@ -258,7 +258,7 @@ public:
 
     virtual void init(Block* block);
 
-    virtual void createInitialSpace() {;}
+    virtual void createInitialSpace();
     virtual void solveInitialTimeStep() {assert(0);}
 
     // returns the value of the next time step lenght (for transient problems), using BDF2 approximation

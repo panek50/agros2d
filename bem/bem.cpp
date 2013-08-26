@@ -14,12 +14,14 @@
 #include "../agros2d-library/hermes2d/field.h"
 #include "../agros2d-library/hermes2d/problem.h"
 #include "../agros2d-library/hermes2d/problem_config.h"
+#include "../hermes2d/include/function/exact_solution.h"
 #include "algebra.h"
 
 Bem::Bem(FieldInfo * const fieldInfo)
 {
     qDebug() << "BEM solver";
     m_fieldInfo = fieldInfo;
+
     readMesh();
     addPhysics();
     assemblyMatrices();
@@ -176,3 +178,36 @@ void Bem::assemblyMatrices()
         qDebug() <<  H(i,i);
     }
 }
+
+
+
+template<typename Scalar>
+BemSolution<Scalar>::BemSolution(MeshSharedPtr mesh) : Hermes::Hermes2D::ExactSolutionScalar<Scalar>(mesh)
+{
+}
+
+
+template<typename Scalar>
+Scalar BemSolution<Scalar>::value(double x, double y) const
+{
+    qDebug() << "BemSolution::value";
+    return 10;
+}
+
+template<typename Scalar>
+void BemSolution<Scalar>::derivatives(double x, double y, Scalar &dx, Scalar &dy) const
+{
+    dx = 0;
+    dy = 0;
+}
+
+template<typename Scalar>
+Hermes::Hermes2D::MeshFunction<Scalar>* BemSolution<Scalar>::clone() const
+{
+    if(this->sln_type == Hermes::Hermes2D::HERMES_SLN)
+        return Hermes::Hermes2D::Solution<Scalar>::clone();
+    BemSolution<Scalar>* sln = new BemSolution<Scalar>(this->mesh);
+    return sln;
+}
+
+template HERMES_API class BemSolution<double>;
