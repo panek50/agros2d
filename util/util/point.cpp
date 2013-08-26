@@ -285,8 +285,10 @@ bool Point::operator ==(const Point &vec) const
 }
 
 Point Point::rotate(double angle)
-{   double tmp_x = x * cos(angle) -  y * sin(angle);
-    y = x * sin(angle) +  y * cos(angle);
+{   double cos_angle = cos(angle);
+    double sin_angle = sin(angle);
+    double tmp_x = x * cos_angle -  y * sin_angle;
+    y = x * sin_angle +  y * cos_angle;
     x = tmp_x;
     return (*this);
 }

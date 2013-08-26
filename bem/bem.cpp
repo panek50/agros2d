@@ -223,8 +223,7 @@ void Bem::solve()
                 H(i, j) = H(i, j) + 0.5;
         }
     }
-    qDebug() << H.toString();
-    qDebug() << G.toString();
+
     BemVector bp(n);
     for(int i = 0; i < n; i++ )
     {
@@ -266,11 +265,9 @@ void Bem::solve()
 
     // ToDo: Poisson - right side vector
 
-    qDebug() << rsv.toString();
+
     BemVector b = C * rsv + bp;
-    qDebug() << b.toString();
     BemVector results = A.solve(b);
-    qDebug() << results.toString();
 
     for (int i = 0; i < n; i++)
     {
@@ -292,10 +289,6 @@ double Bem::potential(double x, double y)
     double u = 0;
     Point p(x, y);
     int n = m_edgeComponents.count();
-//    int m = m_elements.count();
-
-//    qDebug() << p.toString();
-
     for(int i = 0; i < n; i++)
     {
 
