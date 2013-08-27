@@ -4,7 +4,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 # Debug yes / no.
 SET(AGROS_DEBUG NO)
-SET(WITH_QT5 NO)
+SET(WITH_QT5 YES)
 SET(CMAKE_AGROS_DIRECTORY "${CMAKE_HOME_DIRECTORY}/")
 
 # Allow to override the default values in CMake.vars:

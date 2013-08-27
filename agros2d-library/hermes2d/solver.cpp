@@ -1257,9 +1257,9 @@ void SolverBem<Scalar>::solveSimple(int timeStep, int adaptivityStep)
 
     QPluginLoader * loader;
     SolverInterface * solver;
-    if (QFile::exists(QString("%1/libs/libagros2d_solver_bem.so").arg(datadir())))
+    if (QFile::exists(QString("%1/libs/libbem.so").arg(datadir())))
     {
-        loader = new QPluginLoader(QString("%1/libs/libagros2d_solver_bem.so").arg(datadir()));
+        loader = new QPluginLoader(QString("%1/libs/libbem.so").arg(datadir()));
         solver = qobject_cast<SolverInterface *>(loader->instance());
         solver->solve(m_block->fields().at(0)->fieldInfo(), m_block->fields().at(0)->fieldInfo()->initialMesh());
     }
