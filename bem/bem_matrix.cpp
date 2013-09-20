@@ -26,13 +26,12 @@ BemMatrix::BemMatrix(double array[], int row, int column)
     }
 }
 
-BemMatrix::BemMatrix(const BemMatrix & m) : QObject()
-{
-    int i,j;
+BemMatrix::BemMatrix(const BemMatrix & m)
+{    
     this->createArray(m.m_row,m.m_column);
-    for(i = 0; i  <  this->m_row; i++)
+    for(int i = 0; i  <  this->m_row; i++)
     {
-        for(j = 0; j < this->m_column; j++)
+        for(int j = 0; j < this->m_column; j++)
         {
             this->m_array[j + i * m_column] = m.m_array[j + i * m_column];
         }
@@ -136,6 +135,21 @@ BemMatrix BemMatrix::operator *(BemMatrix & m)
     }
 }
 
+BemVector BemMatrix::operator *(BemVector & v)
+{        
+    BemVector vtemp(v.n());
+    vtemp.clear();
+
+    for(int i = 0; i  <  m_row; i++)
+    {
+        for(int k = 0; k  <  m_column; k++)
+        {
+            vtemp(i) += m_array[i  * m_column + k] * v(k);
+        }
+    }
+    return vtemp;
+}
+
 BemMatrix BemMatrix::operator *(const double & x) const
 {
     BemMatrix mtemp(m_row, m_column);
@@ -163,7 +177,7 @@ BemMatrix operator *(double x, BemMatrix m)
     return mtemp;
 }
 
-double & BemMatrix::operator() (unsigned row, unsigned column)
+double & BemMatrix::operator() (unsigned row, unsigned column) const
 {
     return m_array[m_column * row + column];
 }
@@ -173,10 +187,10 @@ void BemMatrix::set(int row, int column, double value)
     m_array[m_column * row + column] = value;
 }
 
-BemMatrix BemMatrix::solve(const BemMatrix & m)
+BemVector BemMatrix::solve(BemVector &v)
 {
     // Todo: copy of original matrix is performed, decide if this is usefull or not.
-    BemMatrix result(m);
+    BemVector result(v);
     BemMatrix temp(*this);
     int * pivots = new int[m_row];
     LAPACKE_dgesv(LAPACK_ROW_MAJOR, m_row, 1, temp.m_array, m_row, pivots, result.m_array, 1);
@@ -235,27 +249,125 @@ void BemMatrix::eye()
     }
 }
 
-BemVector & BemVector::transpose()
+
+BemVector::BemVector(int n)
 {
-    int temp = row();
-    setRow(column());
-    setColumn(temp);
-    return * this;
+    this->m_n = n;
+    m_array = new double[n];
+    this->clear();
+}
+
+BemVector::BemVector(const BemVector & v)
+{
+    m_n = v.n();
+    m_array = new double[m_n];
+    for(int i = 0; i < m_n; i++)
+    {
+        m_array[i] = v.m_array[i];
+    }
 }
 
 double BemVector::length() const
 {
-   double length = 0;
-   int n;
-   if (m_type == VectorTypeColumn)
-       n = column();
-   else
-       n= row();
+    double length = 0;
+    for(int i =  0; i < m_n; i++)
+    {
+        length += m_array[i] * m_array[i];
+    }
+    return sqrt(length);
+}
 
-   for(int i =  0; i < n; i++)
-   {
-       length += m_array[i] * m_array[i];
-   }
-   return sqrt(length);
+void BemVector::operator+=(BemVector & v)
+{
+    if(v.n() != m_n)
+        throw;
+    for(int i = 0; i < m_n; i++)
+    {
+        m_array[i] = m_array[i] + v(i);
+    }
+}
+
+BemVector BemVector::operator* (const double & x) const
+{
+    BemVector v(m_n);
+    for(int i = 0; i < m_n; i++)
+    {
+        v(i) = m_array[i] * x;
+    }
+    return v;
+}
+
+
+BemVector BemVector::operator* (BemMatrix & m) const
+{
+    {
+        BemVector vtemp(m_n);
+        vtemp.clear();
+
+        for(int i = 0; i  <  m_n; i++)
+        {
+            for(int j = 0; j  <  m.row(); j++)
+            {
+                vtemp(i) += m_array[j] * m(j, i);
+            }
+        }
+        return vtemp;
+    }
+}
+
+BemVector BemVector::operator+(const BemVector & m) const
+{
+    BemVector vtemp(m_n);
+
+    for(int i = 0; i  <  m_n; i++)
+    {
+        vtemp.m_array[i] = m.m_array[i] + m_array[i];
+
+    }
+    return vtemp;
+}
+
+BemVector & BemVector::operator=(const BemVector & v)
+{
+    if(this == &v)
+        return *this;
+
+    delete[] m_array;
+
+    m_n = v.m_n;
+    m_array = new double[m_n];
+
+    for(int i = 0; i < m_n; i++)
+    {
+        m_array[i] = v.m_array[i];
+    }
+    return *this;
+}
+
+
+double & BemVector::operator () (int i)
+{
+    return m_array[i];
+}
+
+
+void BemVector::clear()
+{
+    int i,j;
+    for(i = 0; i  <  m_n; i++)
+    {
+        m_array[i] = 0;
+    }
+}
+
+QString BemVector::toString()
+{
+    QString out = "";
+    for(int i = 0; i < m_n; i++)
+    {
+        out += QString::number(m_array[i]);
+        out += " ";
+    }
+    return out;
 }
 

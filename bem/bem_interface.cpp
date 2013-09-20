@@ -27,7 +27,7 @@ Hermes::Hermes2D::ExactSolutionScalar<double>* BemInterface::getSolution()
 void BemInterface::solve(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh> mesh)
 {    
     m_bem = new Bem(field, mesh); // Memmory leak?
-    qDebug() << m_bem;        
+    // qDebug() << m_bem;
     m_bem->addPhysics();
     m_bem->solve();
     m_solution = new BemSolution<double>(mesh); // Memmory leak?

@@ -37,14 +37,14 @@ class EdgeComponent
 {
 
 public:
-    EdgeComponent(Point firstPoint, Point secondPoint);
+    EdgeComponent(Point firstPoint, Point lastPoint);
     double elementArea() {return m_element->area;}
     int id() { return m_id; }
 
     // ToDo: make it private
     Hermes::Hermes2D::Element * m_element;
-    Point firstPoint() { return m_firstPoint; }
-    Point secondPoint() { return m_secondPoint; }
+    Point & firstPoint()  { return m_nodes.first(); }
+    Point & lastPoint() { return m_nodes.last(); }
     Point gravity() const { return m_gravity;}
     bool isLyingPoint (Point node);
     QString boundaryType;
@@ -54,11 +54,10 @@ public:
     int m_edgeID;
     QString m_type;
     double m_length;
+    QList<Point> m_nodes;
 
 private:
-    int m_id;
-    Point m_firstPoint;
-    Point m_secondPoint;
+    int m_id;    
     Point m_gravity;
 };
 
@@ -73,9 +72,21 @@ public:
     void addPhysics();
     void assemblyMatrices();
     void solve();
+    double quad(int oder, Point refNode, EdgeComponent segment,double (Bem::*kernel)(Point, EdgeComponent, double));
+    double gaussLaguerre(int oder, Point refNode, EdgeComponent segment,double (Bem::*kernel)(Point, EdgeComponent, double));
+
+    double kernel_length(Point refNode, EdgeComponent segment, double xi);
+    double kernel_laplace2D_derivation(Point refNode, EdgeComponent segment, double xi);
+    double kernel_laplace2D(Point refNode, EdgeComponent segment, double xi);
+
     QString toString();
     Point integral(Point v, Point a, Point b);
     double potential(double x, double y);
+    Point globalCoordinates(int polyOrder, double xi, EdgeComponent segment);
+    BemVector shapeFunction(int polyOrder, double xi);
+    BemVector shapeFunctionDerivative(int polyOrder, double xi);
+    Point normalVector(int polyOrder, double xi, EdgeComponent segment);
+    double jacobian(int polyOrder, double xi, EdgeComponent segment);
 
     // Todo: make it private
     QList<EdgeComponent> m_edgeComponents;
@@ -100,8 +111,7 @@ public:
     virtual Hermes::Hermes2D::MeshFunction<Scalar>* clone() const;    
     /// Saves the exact solution to an XML file.
     void save(const char* filename) const { }    
-    void setSolver(Bem * bem) { m_bem = bem; }
-
+    void setSolver(Bem * bem) { m_bem = bem; }    
 
 protected:    
     // virtual void precalculate(int order, int mask) { qDebug() << "OK";}

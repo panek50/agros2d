@@ -7,6 +7,16 @@
 #include<QObject>
 #include<QString>
 
+class BemMatrix;
+class BemVector;
+
+
+enum BemVectorType
+{
+    VectorTypeColumn = 0,
+    VectorTypeRow = 1
+};
+
 class BemException : public std::exception
 {
 public:
@@ -16,13 +26,14 @@ public:
     }
 };
 
-class BemMatrix : public QObject
+
+class BemMatrix
 {
-    Q_OBJECT
 public:
     BemMatrix() { assert(0); }
     BemMatrix(int m_row, int m_column);
     BemMatrix(const BemMatrix  &m);
+    // BemMatrix(BemVector & v);
     BemMatrix(double array[], int row, int column);
     ~BemMatrix();
 
@@ -32,9 +43,11 @@ public:
     BemMatrix operator-(const BemMatrix & m);
     BemMatrix operator*(BemMatrix & m);
     BemMatrix operator*(const double & x) const;
+    BemVector operator*(BemVector & v);
     BemMatrix operator/(double x) {return operator *(1/x); }
-    BemMatrix solve(const BemMatrix & m);
+    BemVector solve(BemVector & v);
     friend BemMatrix operator*(double x, BemMatrix m);
+    // friend BemVector operator*(BemVector v, BemMatrix m);
     friend BemMatrix operator/(double x, BemMatrix m);
 
     int row() const { return m_row; }
@@ -42,7 +55,7 @@ public:
     int column() const { return m_column; }
     void setColumn(int column) { m_column = column; }
 
-    double & operator() (unsigned row, unsigned col);
+    double & operator() (unsigned row, unsigned col) const;
     void set(int m_row, int m_column, double value);
 
     QString toString();
@@ -61,24 +74,30 @@ protected:
 
 };
 
-enum BemVectorType
+class BemVector
 {
-    VectorTypeColumn = 0,
-    VectorTypeRow = 1
-};
+public:
+    BemVector() { assert(0); }
+    BemVector(int n);
+    BemVector(const BemVector & v);
+    ~BemVector() { delete[] m_array; }
 
-// ToDo : inheritance from matrix is to slow repaire
-class BemVector : public BemMatrix
-{
-public:    
-    BemVector(int n) : BemMatrix(n, 1) { m_type = VectorTypeColumn; }
-    BemVector(BemMatrix m) : BemMatrix(m) { if(column() != 1) throw BemException(); }
-    double & operator() (int i) { return BemMatrix::operator()(0, i); }
+    double & operator() (int i);
+    void operator+=(BemVector & v);
+    BemVector operator +(const BemVector & m) const;
+    BemVector operator * (const double & x) const;
+    BemVector operator * (BemMatrix & m) const;
+    BemVector & operator=(const BemVector & v);
+
+    QString toString();
+    int n() const { return m_n; }
     double length() const;
-    BemVector & transpose();
+    friend BemVector BemMatrix::solve(BemVector & v);
+    void clear();
 
 private:
-    BemVectorType m_type;
+    double * m_array;
+    int m_n;
 };
 
 Q_DECLARE_METATYPE(BemMatrix);

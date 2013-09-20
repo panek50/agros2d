@@ -60,10 +60,14 @@ int main()
     b(0) = 3;
     b(1) = 2;
 
+    BemVector d(3);
+    d = a * b;
+    d += b;
+    d = a.solve(b);
 
-    qout << a.toString();
-    qout << (a.solve(b)).toString();
-    qout << a.toString();
+    qout << d.toString();
+
+
     // qout << (y.rotate(3.141592654).toString());
     return 0;
 }
