@@ -12,54 +12,7 @@
 #include "../hermes2d/include/function/exact_solution.h"
 #include "../agros2d-library/hermes2d/solver.h"
 #include "bem_matrix.h"
-
-class Element
-{
-public:
-    Element (QList<Point> nodes);
-    Element (Point a, Point b, Point c);
-    int id() const { return m_id; }
-    Point gravity() { return m_gravity; }
-    double araea() { return m_area;}
-    void setArea(double area) { m_area = area; }
-    double f() { return m_f; }
-
-private:
-    QList<Point> m_points;
-    int m_id;
-    Point m_gravity;
-    double m_area;
-    double m_f;
-};
-
-
-class EdgeComponent
-{
-
-public:
-    EdgeComponent(Point firstPoint, Point lastPoint);
-    double elementArea() {return m_element->area;}
-    int id() { return m_id; }
-
-    // ToDo: make it private
-    Hermes::Hermes2D::Element * m_element;
-    Point & firstPoint()  { return m_nodes.first(); }
-    Point & lastPoint() { return m_nodes.last(); }
-    Point gravity() const { return m_gravity;}
-    bool isLyingPoint (Point node);
-    QString boundaryType;
-    double m_value;
-    double m_derivation;
-    bool m_isEssential;
-    int m_edgeID;
-    QString m_type;
-    double m_length;
-    QList<Point> m_nodes;
-
-private:
-    int m_id;    
-    Point m_gravity;
-};
+#include "mesh.h"
 
 
 class Bem
@@ -72,27 +25,27 @@ public:
     void addPhysics();
     void assemblyMatrices();
     void solve();
-    double quad(int oder, Point refNode, EdgeComponent segment,double (Bem::*kernel)(Point, EdgeComponent, double));
-    double gaussLaguerre(int oder, Point refNode, EdgeComponent segment,double (Bem::*kernel)(Point, EdgeComponent, double));
+    void domainSolution();
+    double getValue(double x, double y);
 
-    double kernel_length(Point refNode, EdgeComponent segment, double xi);
-    double kernel_laplace2D_derivation(Point refNode, EdgeComponent segment, double xi);
-    double kernel_laplace2D(Point refNode, EdgeComponent segment, double xi);
+    double quad(int oder, int j, Node node, Segment segment, double (Bem::*kernel)(Node, Segment, double));
+    double gaussLaguerre(int oder, QList<Node> nodes, Segment segment,double (Bem::*kernel)(Node, Segment, double));
+
+    double kernel_length(Node refNode, Segment segment, double xi);
+    double kernel_laplace2D_derivation(Node refNode, Segment segment, double xi);
+    double kernel_laplace2D(Node refNode, Segment segment, double xi);
 
     QString toString();
-    Point integral(Point v, Point a, Point b);
+    Node integral(Node v, Node a, Node b);
     double potential(double x, double y);
-    Point globalCoordinates(int polyOrder, double xi, EdgeComponent segment);
+    Node globalCoordinates(double xi, Segment segment);
     BemVector shapeFunction(int polyOrder, double xi);
+    BemVector shapeFunction2D(int polyOrder, double s, double t);
     BemVector shapeFunctionDerivative(int polyOrder, double xi);
-    Point normalVector(int polyOrder, double xi, EdgeComponent segment);
-    double jacobian(int polyOrder, double xi, EdgeComponent segment);
-
-    // Todo: make it private
-    QList<EdgeComponent> m_edgeComponents;
-    QList<Element> m_elements;
-    int m_nElement;
-
+    Node normalVector(double xi, Segment segment);
+    double jacobian(int polyOrder, double xi, Segment segment);
+    // Private ?
+    Mesh mesh;
 
 private:
     MeshSharedPtr m_mesh;

@@ -54,7 +54,7 @@ struct AGROS_UTIL_API  Point
     inline Point operator*(double num) const { return Point(x * num, y * num); }
     inline Point operator/(double num) const { return Point(x / num, y / num); }
     inline double operator&(const Point &vec) const { return x*vec.x + y*vec.y; } // dot product
-    inline double operator%(const Point &vec) const { return x*vec.y - y*vec.x; } // cross product    
+    inline double operator%(const Point &vec) const { return x*vec.y - y*vec.x; } // cross product
     bool operator!=(const Point &vec) const;
     bool operator==(const Point &vec) const;
 
