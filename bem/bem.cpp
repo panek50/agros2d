@@ -21,6 +21,7 @@
 
 #include "bem.h"
 #include "mesh.h"
+#include "quad_tables.h"
 
 Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
 {    
@@ -30,12 +31,12 @@ Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
 
 
 void Bem::addPhysics()
-{
+{ 
     QList<Segment> edgeComponents;
     Hermes::Hermes2D::Element *e;
     int j = 0;
     for(int j = 0; j < Agros2D::scene()->edges->items().count(); j++)
-    {        
+    {
         SceneBoundary *boundary = Agros2D::scene()->edges->items().at(j)->marker(m_fieldInfo);
         if (boundary && (!boundary->isNone()))
         {
@@ -60,30 +61,52 @@ void Bem::addPhysics()
                             Node * firstPoint = new Node(e->vn[i]->x, e->vn[i]->y);
                             Node * secondPoint = new Node(e->vn[e->next_vert(i)]->x, e->vn[e->next_vert(i)]->y);
 
-                            int index = mesh.m_nodes.indexOf(firstPoint);
-                            if(index == -1)
-                            {                                
-                                firstPoint->id = mesh.m_nodes.count();
-                                mesh.m_nodes.append(firstPoint);
-                            }
-                            else
-                            {                                                             
-                                delete firstPoint;
-                                firstPoint = mesh.m_nodes[index];
-                            }
-                            index = mesh.m_nodes.indexOf(secondPoint);
-                            if(index == -1)
-                            {                                
-                                secondPoint->id = mesh.m_nodes.count();
-                                mesh.m_nodes.append(secondPoint);
-                            }
-                            else
-                            {                                
-                                delete secondPoint;
-                                secondPoint = mesh.m_nodes[index];
+                            Node * fP;
+                            int index = -1;
+                            for(int l = 0; l < mesh.m_nodes.count(); l++)
+                            {
+                                if(*mesh.m_nodes[l] == *firstPoint)
+                                {
+                                    index = l;
+                                    break;
+                                }
                             }
 
-                            Segment segment(firstPoint, secondPoint);
+                            if(index == -1)
+                            {
+
+                                firstPoint->globalIndex = mesh.m_nodes.count();
+                                mesh.m_nodes.append(firstPoint);
+                                fP = mesh.m_nodes[mesh.m_nodes.count() - 1];
+                            }
+                            else
+                            {
+                                fP = mesh.m_nodes[index];
+                            }
+
+                            Node * sP;
+                            index = -1;
+                            for(int l = 0; l < mesh.m_nodes.count(); l++)
+                            {
+                                if(*mesh.m_nodes[l] == *secondPoint)
+                                {
+                                    index = l;
+                                    break;
+                                }
+                            }
+
+                            if(index == -1)
+                            {
+                                secondPoint->globalIndex = mesh.m_nodes.count();
+                                mesh.m_nodes.append(secondPoint);
+                                sP =  mesh.m_nodes[mesh.m_nodes.count() - 1];
+                            }
+                            else
+                            {
+                                sP = mesh.m_nodes[index];
+                            }
+
+                            Segment segment(fP, sP);
                             segment.m_mesh = & mesh;
                             segment.setElement(e);
                             segment.setValue(value);
@@ -99,48 +122,30 @@ void Bem::addPhysics()
                 mesh.m_elements.append(element);
                 // ToDo: read material properties
 
-            }            
+            }
             mesh.m_nElement = nElement;
         }
     }
 
-
-    mesh.m_segments.append(edgeComponents.at(0));
-    for(int j = 0; j < edgeComponents.count(); j++)
+    for(int i = 0; i < edgeComponents.count(); i++)
     {
-        for(int i = 1; i < edgeComponents.count(); i++)
-        {
-            if(edgeComponents[i].firstNode() == mesh.m_segments[j].secondNode())
-            {
-                mesh.m_segments.append(edgeComponents.at(i));
-                break;
-            }
-        }
-    }    
+        mesh.m_segments.append((edgeComponents.at(i)));
+    }
 
     foreach(Segment segment, mesh.m_segments)
     {
-
         if (segment.isEssential())
         {
             segment.firstNode().isEssential = true;
             segment.firstNode().value = segment.value();
-            segment.secondNode().isEssential = true;
-            segment.secondNode().value = segment.value();
+            segment.lastNode().isEssential = true;
+            segment.lastNode().value = segment.value();
         }
         else
         {
             segment.firstNode().normalDerivation = segment.derivation();
-            segment.secondNode().normalDerivation = segment.derivation();
+            segment.lastNode().normalDerivation = segment.derivation();
         }
-    }
-
-    foreach(Node * node, mesh.m_nodes)
-    {
-        qDebug() << node->x << node->y;
-        qDebug() << node->isEssential;
-        qDebug() << node->value;
-        qDebug() << node->normalDerivation;
     }
 }
 
@@ -168,9 +173,9 @@ QString Bem::toString()
         output += "\n";
         output += "Second Point:";
         output += " ";
-        output += QString::number(component.secondNode().x);
+        output += QString::number(component.lastNode().x);
         output += " ";
-        output += QString::number(component.secondNode().y);
+        output += QString::number(component.lastNode().y);
         output += "\n";
 
     }
@@ -190,7 +195,7 @@ Node Bem::globalCoordinates(double xi, Segment segment)
     QList<Node> points;
     if(n == 1);
     points.append(segment.firstNode());
-    points.append(segment.secondNode());
+    points.append(segment.lastNode());
 
 
     for(int i = 0; i <= n; i++)
@@ -244,8 +249,8 @@ double Bem::jacobian(int polyOrder, double xi, Segment segment)
 
     if((polyOrder == 1) || (polyOrder == 0))
     {
-        double x = (segment.secondNode().x - segment.firstNode().x);
-        double y = (segment.secondNode().y - segment.firstNode().y);
+        double x = (segment.lastNode().x - segment.firstNode().x);
+        double y = (segment.lastNode().y - segment.firstNode().y);
 
         dGamma = 0.5 * sqrt(x*x + y*y);
     }
@@ -264,7 +269,7 @@ Node Bem::normalVector(double xi, Segment segment)
     if(polyOrder == 1);
     {
         points.append(segment.firstNode());
-        points.append(segment.secondNode());
+        points.append(segment.lastNode());
     }
 
     for(int i = 0; i < polyOrder + 1; i++)
@@ -331,263 +336,15 @@ double Bem::kernel_laplace2D_derivation(Node refNode, Segment segment, double xi
 
 void Bem::solve()
 {        
-    // Gauss coordinates and weights
-    QList<QList<double> > weights;
-    QList<QList<double> > coords;
-
-
-    QList<double> wi;
-    QList<double> coord;
-
-    wi.append(2.0);
-    coord.append(0);
-    weights.append(wi);
-    coords.append(coord);
-
-    wi.clear();
-    coord.clear();
-    coord.append(0.577350269);
-    coord.append(-0.577350269);
-    wi.append(1.0);
-    wi.append(1.0);
-    weights.append(wi);
-    coords.append(coord);
-
-    wi.clear();
-    coord.clear();
-    coord.append(0.774596669);
-    coord.append(0);
-    coord.append(-0.774596669);
-    wi.append(0.5555555555);
-    wi.append(0.8888888888);
-    wi.append(0.5555555555);
-    weights.append(wi);
-    coords.append(coord);
-
-
-    wi.clear();
-    coord.clear();
-    coord.append(0.861136311);
-    coord.append(0.339981043);
-    coord.append(-0.339981043);
-    coord.append(-0.861136311);
-    wi.append(0.347854845);
-    wi.append(0.652145154);
-    wi.append(0.652145154);
-    wi.append(0.347854845);
-    weights.append(wi);
-    coords.append(coord);
-
-    wi.clear();
-    coord.clear();
-    coord.append(0.906179845);
-    coord.append(0.538469310);
-    coord.append(0);
-    coord.append(-0.538469310);
-    coord.append(-0.906179845);
-
-    wi.append(0.236926885);
-    wi.append(0.478628670);
-    wi.append(0.568888888);
-    wi.append(0.478628670);
-    wi.append(0.236926885);
-    weights.append(wi);
-    coords.append(coord);
-
-    wi.clear();
-    coord.clear();
-    coord.append(0.932469514);
-    coord.append(0.661209386);
-    coord.append(0.238619186);
-    coord.append(-0.238619186);
-    coord.append(-0.661209386);
-    coord.append(-0.932469514);
-
-    wi.append(0.171324492);
-    wi.append(0.360761573);
-    wi.append(0.467913934);
-    wi.append(0.467913934);
-    wi.append(0.360761573);
-    wi.append(0.171324492);
-    weights.append(wi);
-    coords.append(coord);
-
-    wi.clear();
-    coord.clear();
-    coord.append(0.949107912);
-    coord.append(0.741531185);
-    coord.append(0.405845151);
-    coord.append(0);
-    coord.append(-0.405845151);
-    coord.append(-0.741531185);
-    coord.append(-0.949107912);
-    wi.append(0.129484966);
-    wi.append(0.279705391);
-    wi.append(0.381830050);
-    wi.append(0.417959183);
-    wi.append(0.381830050);
-    wi.append(0.279705391);
-    wi.append(0.129484966);
-    weights.append(wi);
-    coords.append(coord);
-
-    wi.clear();
-    coord.clear();
-    coord.append(0.960289856);
-    coord.append(0.796666477);
-    coord.append(0.525532409);
-    coord.append(0.183434642);
-    coord.append(-0.183434642);
-    coord.append(-0.525532409);
-    coord.append(-0.796666477);
-    coord.append(-0.960289856);
-    wi.append(0.101228536);
-    wi.append(0.222381034);
-    wi.append(0.313706645);
-    wi.append(0.362683783);
-    wi.append(0.362683783);
-    wi.append(0.313706645);
-    wi.append(0.222381034);
-    wi.append(0.101228536);
-    weights.append(wi);
-    coords.append(coord);
-
-    QList<QList<double> > glWeights;
-    QList<QList<double> > glCoords;
-
-
-    QList<double> glWi;
-    QList<double> glCoord;
-    QList<double> rads;
-
-    glWi.append(1);
-    glCoord.append(0.5);
-    weights.append(glWi);
-    coords.append(glCoord);
-
-    glWi.clear();
-    glCoord.clear();
-    glCoord.append(0.112008806);
-    glCoord.append(0.602276908);
-
-    glWi.append(0.718539319);
-    glWi.append(0.281460680);
-    weights.append(glWi);
-    coords.append(glCoord);
-
-    glWi.clear();
-    glCoord.clear();
-    glCoord.append(0.063890793);
-    glCoord.append(0.368997063);
-    glCoord.append(0.766880303);
-
-    glWi.append(0.513404552);
-    glWi.append(0.391980041);
-    glWi.append(0.0946154065);
-    weights.append(glWi);
-    coords.append(glCoord);
-
-
-    glWi.clear();
-    glCoord.clear();
-    glCoord.append(0.0414484801);
-    glCoord.append(0.245274914);
-    glCoord.append(0.556165453);
-    glCoord.append(0.848982394);
-
-    glWi.append(0.383464068);
-    glWi.append(0.386875317);
-    glWi.append(0.190435126);
-    glWi.append(0.0392254871);
-    weights.append(glWi);
-    coords.append(glCoord);
-
-    glWi.clear();
-    glCoord.clear();
-    glCoord.append(0.0291344721);
-    glCoord.append(0.173977213);
-    glCoord.append(0.411702520);
-    glCoord.append(0.677314174);
-    glCoord.append(0.894771361);
-
-    glWi.append(0.297893471);
-    glWi.append(0.349776226);
-    glWi.append(0.234488290);
-    glWi.append(0.0989304595);
-    glWi.append(0.0189115521);
-    weights.append(glWi);
-    coords.append(glCoord);
-
-    glWi.clear();
-    glCoord.clear();
-    glCoord.append(0.021634005);
-    glCoord.append(0.129583391);
-    glCoord.append(0.314020449);
-    glCoord.append(0.538657217);
-    glCoord.append(0.756915337);
-    glCoord.append(0.922668851);
-
-    glWi.append(0.238763662);
-    glWi.append(0.308286573);
-    glWi.append(0.245317426);
-    glWi.append(0.142008756);
-    glWi.append(0.055454622);
-    glWi.append(0.0101689586);
-    weights.append(glWi);
-    coords.append(glCoord);
-
-    glWi.clear();
-    glCoord.clear();
-    glCoord.append(0.016719355);
-    glCoord.append(0.100185677);
-    glCoord.append(0.246294246);
-    glCoord.append(0.433463493);
-    glCoord.append(0.632350988);
-    glCoord.append(0.811118626);
-    glCoord.append(0.940848166);
-    glWi.append(0.196169389);
-    glWi.append(0.270302644);
-    glWi.append(0.239681873);
-    glWi.append(0.165775774);
-    glWi.append(0.088943227);
-    glWi.append(0.0331943043);
-    glWi.append(0.0059327870);
-    weights.append(glWi);
-    coords.append(glCoord);
-
-    glWi.clear();
-    glCoord.clear();
-    glCoord.append(0.0133202441);
-    glCoord.append(0.0797504290);
-    glCoord.append(0.197871029);
-    glCoord.append(0.354153994);
-    glCoord.append(0.529458575);
-    glCoord.append(0.701814529);
-    glCoord.append(0.849379320);
-    glCoord.append(0.953326450);
-    glWi.append(0.164416604);
-    glWi.append(0.237525610);
-    glWi.append(0.226841984);
-    glWi.append(0.175754079);
-    glWi.append(0.112924030);
-    glWi.append(0.0578722107);
-    glWi.append(0.0209790737);
-    glWi.append(0.00368640710);
-    glWeights.append(glWi);
-    glCoords.append(glCoord);
-
-
     int polyOrder = 1;
-    int order = 5;
+    int order = 7;
     int n = mesh.m_segments.count();
-
-    // double (Bem::*kernel)(Point, EdgeComponent, double) = &Bem::kernel_laplace2D;
-    // double (Bem::*kernel_derivation)(Point, EdgeComponent, double) = &Bem::kernel_laplace2D_derivation;
 
     BemMatrix dU(n, n);
     BemMatrix dT(n, n);
     dU.clear();
     dT.clear();
+
     // Loop over all nodes
     Node node;
     for (int i = 0; i < n; i++)
@@ -595,7 +352,7 @@ void Bem::solve()
         if(polyOrder == 0)
             node = mesh.m_segments[i].gravity();
         if(polyOrder == 1)
-            node = mesh.m_segments[i].firstNode();
+            node = * mesh.m_nodes[i];
 
         // Loop over all elements
         for (int j = 0; j < n; j++)
@@ -604,63 +361,60 @@ void Bem::solve()
             // Loop over element nodes
             for(int k = 0; k <= polyOrder; k++)
             {
+                int index = segment.m_nodes[k]->globalIndex;
+                // qDebug() << i << "  " << k << "  " << index;
+                for(int l = 0; l <= order; l++)
                 {
-                    // Analytic integration
-                    for(int l = 0; l <= order; l++)
+                    double  jac =jacobian(polyOrder, gaussCoords[order][l],segment);
+                    if(i == index)
                     {
-                        double  jac =jacobian(polyOrder, coords[order][l],segment);
-                        if(i == (j + k))
-                        {
-                            dU(i, j + k) +=  1 / (2 * M_PI) * (- 2 * log(segment.length()) * shapeFunction(polyOrder, coords[order][l])(k) *  jac * weights[order][l] +
-                                                               2 * shapeFunction(polyOrder, coords[order][l])(k) *  jac * weights[order][l]);
-                            dT(i, j + k) = 0.5;
-                        }
-                        else
-                        {
-                            dT(i, j + k) += shapeFunction(polyOrder, coords[order][l])(k) * kernel_laplace2D_derivation(node, segment, coords[order][l]) * jac * weights[order][l];
-                            dU(i, j + k) += shapeFunction(polyOrder, coords[order][l])(k) * kernel_laplace2D(node, segment, coords[order][l]) * jac * weights[order][l];
-                        }
+                        dU(i, index) +=  1 / (2 * M_PI) * (- 2 * log(segment.length()) * shapeFunction(polyOrder, gaussCoords[order][l])(k) *  jac * gaussWeights[order][l] +
+                                                           2 * shapeFunction(polyOrder, gaussCoords[order][l])(k) *  jac * gaussWeights[order][l]);
+                        dT(i, index) = 0.5;
                     }
+                    dT(i, index) += shapeFunction(polyOrder, gaussCoords[order][l])(k) * kernel_laplace2D_derivation(node, segment, gaussCoords[order][l]) * jac * gaussWeights[order][l];
+                    dU(i, index) += shapeFunction(polyOrder, gaussCoords[order][l])(k) * kernel_laplace2D(node, segment, gaussCoords[order][l]) * jac * gaussWeights[order][l];
                 }
             }
         }
     }
+
     BemVector bp(n);
-//    for(int i = 0; i < n; i++ )
-//    {
-//        for(int j = 0; j < mesh.m_elements.count(); j++)
-//        {
-//            double R = sqrt((mesh.m_segments[i].gravity().x - mesh.m_elements[j].gravity().x) * (mesh.m_segments[i].gravity().x - mesh.m_elements[j].gravity().x) +
-//                            (mesh.m_segments[i].gravity().y - mesh.m_elements[j].gravity().y) * (mesh.m_segments[i].gravity().y - mesh.m_elements[j].gravity().y));
-//            bp(i) += 1/(2 * M_PI) * mesh.m_elements[j].f() * log(R) * mesh.m_elements[j].araea();
-//        }
-//    }
+    //    for(int i = 0; i < n; i++ )
+    //    {
+    //        for(int j = 0; j < mesh.m_elements.count(); j++)
+    //        {
+    //            double R = sqrt((mesh.m_segments[i].gravity().x - mesh.m_elements[j].gravity().x) * (mesh.m_segments[i].gravity().x - mesh.m_elements[j].gravity().x) +
+    //                            (mesh.m_segments[i].gravity().y - mesh.m_elements[j].gravity().y) * (mesh.m_segments[i].gravity().y - mesh.m_elements[j].gravity().y));
+    //            bp(i) += 1/(2 * M_PI) * mesh.m_elements[j].f() * log(R) * mesh.m_elements[j].araea();
+    //        }
+    //    }
 
     // Rearranging matrices
     BemMatrix A(n, n);
     BemMatrix C(n,n);
     BemVector rsv(n);
 
-    for (int i = 0; i < n; i++)
+    for (int j = 0; j < n; j++)
     {
-        if(mesh.m_nodes[i]->isEssential)
+        if(mesh.m_nodes[j]->isEssential)
         {
-            for(int j = 0; j < n; j++)
+            for(int i = 0; i < n; i++)
             {
-                A(j, i) =  - dU(j, i);
-                C(j, i) =  - dT(j, i);
+                A(i, j) =  - dU(i, j);
+                C(i, j) =  - dT(i, j);
             }
-            rsv(i) = mesh.m_nodes[i]->value;
+            rsv(j) = mesh.m_nodes[j]->value;
         }
 
         else
         {
-            for(int j = 0; j < n; j++)
+            for(int i = 0; i < n; i++)
             {
-                A(j, i) =    dT(j, i);
-                C(j, i) =    - dU(j, i);
+                A(i, j) =     dT(i, j);
+                C(i, j) =   - dU(i, j);
             }
-            rsv(i) = mesh.m_nodes[i]->normalDerivation;
+            rsv(j) = mesh.m_nodes[j]->value;
         }
     }
 
@@ -674,6 +428,7 @@ void Bem::solve()
     BemVector results(n);
     results = A.solve(b);
 
+
     for (int i = 0; i < n; i++)
     {
         if(mesh.m_nodes[i]->isEssential)
@@ -686,15 +441,22 @@ void Bem::solve()
             mesh.m_nodes[i]->value = results(i);
         }
     }
+
+    for (int i = 0; i < n; i++)
+    {
+        qDebug() << mesh.m_nodes[i]->value;
+        qDebug() << mesh.m_nodes[i]->normalDerivation;
+    }
+
     domainSolution();
 
-    foreach(Node * node, mesh.m_nodes)
-    {
-        qDebug() << node->x << node->y;
-        qDebug() << node->isEssential;
-        qDebug() << node->value;
-        qDebug() << node->normalDerivation;
-    }
+    //    foreach(Node * node, mesh.m_nodes)
+    //    {
+    //        qDebug() << node->x << node->y;
+    //        qDebug() << node->isEssential;
+    //        qDebug() << node->value;
+    //        qDebug() << node->normalDerivation;
+    //    }
 }
 
 void Bem::domainSolution()
@@ -727,50 +489,59 @@ double Bem::getValue(double x, double y)
 
 double Bem::potential(double x, double y)
 {
-    // QTime t;
-    // t.start();
-    // double (Bem::*kernel)(Node, Segment, double) = & Bem::kernel_laplace2D;
-    // double (Bem::*kernel_derivation)(Node, Segment, double) = & Bem::kernel_laplace2D_derivation;
+    int polyOrder = 1;
+    int order = 7;
+    int n = mesh.m_segments.count();
 
     double u = 0;
     Node p(x, y);
-    int n = mesh.m_segments.count();
+    n = mesh.m_segments.count();
     for(int i = 0; i < n; i++)
     {
         Segment edge = mesh.m_segments[i];
         if(p.distanceOf(edge.firstNode()) < EPS_ZERO)
         {
-            // qDebug() << edge.value();
-            // qDebug() << edge.firstPoint().toString();
             return edge.firstNode().value;
         }
 
-        if(p.distanceOf(edge.secondNode()) < EPS_ZERO)
+        if(p.distanceOf(edge.lastNode()) < EPS_ZERO)
         {
-            // qDebug() << mesh.m_edgeComponents[(i + 1) % n].value();
-            // qDebug() << edge.secondNode().toString();
-            return edge.secondNode().value;
+            return edge.lastNode().value;
         }
 
-        if(edge.distanceOf(p) < 100 * EPS_ZERO)
-            return edge.value();
+        QList<Node> nodes;
+        nodes.append(edge.firstNode());
+        nodes.append(edge.lastNode());
+        //        double H = 0;
+        //        double G = 0;
+        //        Node integ = integral(p, a, b);
 
-        Node a = edge.firstNode();
-        Node b = edge.secondNode();
-        double H = 0;
-        double G = 0;
-        Node integ = integral(p, a, b);
-        G = integ.y;
-        H = integ.x;
-        for(int k = 0; k < 1; k++)
+        double dU = 0;
+        double dT = 0;
+
+        double delta_u = 0;
+        for(int k = 0; k <= polyOrder; k++)
         {
-            G = integ.y;
-            H = integ.x;
-            double delta_u;
-            delta_u = - H * edge.value() +  G * edge.derivation();
-
+            for(int l = 0; l <= order; l++)
+            {
+                double  jac =jacobian(polyOrder, gaussCoords[order][l], edge);
+                if(edge.isLyingPoint(p))
+                {
+                    dU +=  1 / (2 * M_PI) * (- 2 * log(edge.length()) * shapeFunction(polyOrder, gaussCoords[order][l])(k) *  jac * gaussWeights[order][l] +
+                                             2 * shapeFunction(polyOrder, gaussCoords[order][l])(k) *  jac * gaussWeights[order][l]);
+                    dT = 0.5;
+                }
+                dT += shapeFunction(polyOrder, gaussCoords[order][l])(k) * kernel_laplace2D_derivation(p, edge, gaussCoords[order][l]) * jac * gaussWeights[order][l];
+                dU += shapeFunction(polyOrder, gaussCoords[order][l])(k) * kernel_laplace2D(p, edge, gaussCoords[order][l]) * jac * gaussWeights[order][l];
+            }
+            delta_u =  - dT * nodes[k].value +  dU * nodes[k].normalDerivation;
             u = u + delta_u;
+            dT = 0;
+            dU = 0;
         }
+
+        //        G = integ.y; // Analytic solution
+        //        H = integ.x; // Analytic solution
     }
 
     //    for(int i = 0; i < m; i++)

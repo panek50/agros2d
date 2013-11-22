@@ -70,8 +70,8 @@ double Element::value(Node p)
 
 Segment::Segment(Node * firstNode, Node * secondNode)
 {
-    m_firstNode  = firstNode;
-    m_secondNode = secondNode;
+    m_nodes.append(firstNode);
+    m_nodes.append(secondNode);
     m_gravity.x = (firstNode->x + secondNode->x) / 2;
     m_gravity.y = (firstNode->y + secondNode->y) / 2;
     m_length = sqrt(pow(firstNode->x - secondNode->x, 2) + pow(firstNode->y - secondNode->y, 2));
@@ -84,10 +84,10 @@ Segment::Segment(Node * firstNode, Node * secondNode)
 bool Segment::isLyingPoint(Node point)
 {
 
-    double dx = m_secondNode->x - m_firstNode->x;
-    double dy = m_secondNode->y - m_firstNode->y;
+    double dx = lastNode().x - firstNode().x;
+    double dy = lastNode().y - firstNode().y;
 
-    Node sp = * m_firstNode;
+    Node sp = firstNode();
 
     double t = ((point.x - sp.x)*dx + (point.y - sp.y)*dy);
 
@@ -107,10 +107,10 @@ bool Segment::isLyingPoint(Node point)
 
 double Segment::distanceOf(Node point)
 {
-    double dx = m_secondNode->x - m_firstNode->x;
-    double dy = m_secondNode->y - m_firstNode->y;
+    double dx = lastNode().x - firstNode().x;
+    double dy = lastNode().y - firstNode().y;
 
-    Node sp = * m_firstNode;
+    Node sp = firstNode();
 
     double t = ((point.x - sp.x)*dx + (point.y - sp.y)*dy);
 

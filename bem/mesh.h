@@ -30,6 +30,7 @@ public:
 struct  Node
 {
     int id;
+    int globalIndex;
     double x, y;
     double value;
     double normalDerivation;
@@ -106,11 +107,11 @@ class Segment
 {
 
 public:
-    Segment(Node *firstNode, Node *secondNode);
+    Segment(Node *firstNode, Node *lastNode);
     double elementArea() {return m_element->area;}
     int id() { return m_id; }
-    Node & firstNode()  { return * m_firstNode; }
-    Node & secondNode() { return * m_secondNode; }
+    Node & firstNode()  { return * m_nodes.first(); }
+    Node & lastNode() { return * m_nodes.last(); }
     Node gravity() const { return m_gravity;}
     bool isLyingPoint (Node node);
     double distanceOf(Node point);
@@ -140,6 +141,9 @@ public:
 
     // ToDo: make it private
     Mesh * m_mesh;
+    QList<Node *> m_nodes;
+
+
 private:
     int m_id;
     int m_order;
@@ -155,9 +159,7 @@ private:
     QString m_type;
     QString m_boundaryType;    
 
-    Node m_gravity;
-    Node * m_firstNode;
-    Node * m_secondNode;
+    Node m_gravity;    
 
     Hermes::Hermes2D::Element * m_element;    
 };
