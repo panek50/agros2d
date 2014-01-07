@@ -28,8 +28,12 @@ void BemInterface::solve(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D
 {    
     m_bem = new Bem(field, mesh); // Memmory leak?
     // qDebug() << m_bem;
-    m_bem->addPhysics();
+    m_bem->readMesh();
     m_bem->solve();
     m_solution = new BemSolution<double>(mesh); // Memmory leak?
     m_solution->setSolver(m_bem);
 }
+
+#if QT_VERSION < 0x050000
+Q_EXPORT_PLUGIN2(agros2d_bem_interface, BemInterface)
+#endif

@@ -18,13 +18,20 @@ struct Node;
 class Segment;
 class Element;
 
+/*!
+ * \brief Class describing mesh of the problem.
+ *
+ *
+ */
+
 class Mesh
 {
 public:
-    QList<Segment> m_segments;
-    QList<Element> m_elements;
+    QList<Segment> m_segments;      /*! Surface of the body is divided into segments */
+    QList<Element> m_elements;      /*! Volume of the body is divided into elements */
     QList<Node *> m_nodes;
-    int m_nElement;
+    int m_nElement;                 /*! Number of elements */
+    int m_nSegment;
 };
 
 struct  Node
@@ -88,7 +95,7 @@ public:
     double value(Node p);
     double f() { return m_f; }
     double nodeValues[3];
-    bool containsPoint(Node x);
+    bool containsPoint(Node x);    
     QList<Node *> m_nodes;
     Mesh * m_mesh;
 
@@ -139,9 +146,13 @@ public:
 
     double length() const { return m_length; }
 
-    // ToDo: make it private
+    double parametricCoordinate(Node node);
+
     Mesh * m_mesh;
     QList<Node *> m_nodes;
+    QList<Node *> m_points;
+    double m_jacobian;
+    double m_logJacobian;
 
 
 private:
@@ -155,6 +166,7 @@ private:
     double m_value;
     double m_derivation;
     double m_length;
+    double jacobian;
 
     QString m_type;
     QString m_boundaryType;    

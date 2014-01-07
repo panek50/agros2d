@@ -16,13 +16,15 @@
 
 
 class Bem
+/*! \brief Class Bem offers functionallity of the Boundary element method
+ *
+ */
 {
 
 public:
     Bem(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh> mesh);
     ~Bem() {}
     void readMesh();
-    void addPhysics();
     void assemblyMatrices();
     void solve();
     void domainSolution();
@@ -39,15 +41,15 @@ public:
     Node integral(Node v, Node a, Node b);
     double potential(double x, double y);
     Node globalCoordinates(double xi, Segment segment);
-    BemVector shapeFunction(int polyOrder, double xi);
+    BemVector shapeFunction(int n, double xi);
     BemVector shapeFunction2D(int polyOrder, double s, double t);
     BemVector shapeFunctionDerivative(int polyOrder, double xi);
     Node normalVector(double xi, Segment segment);
     double jacobian(int polyOrder, double xi, Segment segment);
-    // Private ?
-    Mesh mesh;
 
 private:
+    Mesh mesh;
+    unsigned int m_polyOrder;
     MeshSharedPtr m_mesh;
     FieldInfo * m_fieldInfo;
 };

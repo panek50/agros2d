@@ -5,7 +5,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../hermes/cmake)
 # Debug yes / no.
 SET(AGROS_DEBUG YES)
 SET(AGROS_PLUGINS_DEBUG YES)
-SET(WITH_QT5 YES)
+SET(WITH_QT5 NO)
 
 ADD_DEFINITIONS(-DQT_PLUGIN)
 ADD_DEFINITIONS(-DQT_SHARED)
@@ -177,7 +177,7 @@ INCLUDE_DIRECTORIES(${CMAKE_AGROS_DIRECTORY}/3rdparty/paralution/src)
 INCLUDE_DIRECTORIES(.)
 
 SET(SOURCES bem.cpp bem_interface.cpp bem_matrix.cpp mesh.cpp)
-SET(HEADERS bem.h bem_interface.h bem_matrix.h mesh.h quad_tables.h)
+SET(HEADERS bem.h bem_interface.h bem_matrix.h mesh.h)
 
 ADD_LIBRARY(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
 

@@ -65,13 +65,12 @@ public:
     void clear();
     void gaussElim();
     void luFactorisation();
+    double *m_array;
 
 protected:
-    void createArray(int m_row, int m_column);
-    double *m_array;
+    void createArray(int m_row, int m_column);    
     int m_row;
     int m_column;
-
 };
 
 class BemVector
