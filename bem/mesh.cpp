@@ -53,18 +53,21 @@ bool Element::containsPoint(Node x)
 }
 
 double Element::value(Node p)
-{
+{    
     double area = araea();
     double x1 = this->m_nodes.at(0)->x;
     double y1 = this->m_nodes.at(0)->y;
     double x2 = this->m_nodes.at(1)->x;
     double y2 = this->m_nodes.at(1)->y;
     double x3 = this->m_nodes.at(2)->x;
-    double y3 = this->m_nodes.at(2)->y;
+    double y3 = this->m_nodes.at(2)->y;    
+    double value1 = m_nodes[0]->value;
+    double value2 = m_nodes[1]->value;
+    double value3 = m_nodes[2]->value;
     double N1 = 0.5 * ((x2 * y3 - x3 * y2) + (y2 - y3) * p.x + (x3 - x2) * p.y) / area;
     double N2 = 0.5 * ((x3 * y1 - x1 * y3) + (y3 - y1) * p.x + (x1 - x3) * p.y) / area;
     double N3 = 0.5 * ((x1 * y2 - x2 * y1) + (y1 - y2) * p.x + (x2 - x1) * p.y) / area;
-    double result = N1 * nodeValues[0] +  N2 * nodeValues[1]  + N3 * nodeValues[2];
+    double result = N1 * value1 +  N2 * value2  + N3 * value3;
     return result;
 }
 

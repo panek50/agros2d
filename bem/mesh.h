@@ -29,9 +29,12 @@ class Mesh
 public:
     QList<Segment> m_segments;      /*! Surface of the body is divided into segments */
     QList<Element> m_elements;      /*! Volume of the body is divided into elements */
-    QList<Node *> m_nodes;
+    QList<Node *> m_nodes;          /*! Boundary nodes */
+    QList<Node> m_innerNodes;       /*! Domain nodes */
+    QList<Node> m_boundaryNodes;
+
     int m_nElement;                 /*! Number of elements */
-    int m_nSegment;
+    int m_nSegment;                 /*! Number of segments */
 };
 
 struct  Node

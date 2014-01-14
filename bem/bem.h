@@ -41,7 +41,7 @@ public:
     Node integral(Node v, Node a, Node b);
     double potential(double x, double y);
     Node globalCoordinates(double xi, Segment segment);
-    BemVector shapeFunction(int n, double xi);
+    void shapeFunction(int n, double xi, double *result);
     BemVector shapeFunction2D(int polyOrder, double s, double t);
     BemVector shapeFunctionDerivative(int polyOrder, double xi);
     Node normalVector(double xi, Segment segment);
