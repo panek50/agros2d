@@ -27,6 +27,8 @@ class Element;
 class Mesh
 {
 public:
+    void read(MeshSharedPtr mesh);                    /*! read the Hermes mesh and build own structures */
+
     QList<Segment> m_segments;      /*! Surface of the body is divided into segments */
     QList<Element> m_elements;      /*! Volume of the body is divided into elements */
     QList<Node *> m_nodes;          /*! Boundary nodes */
@@ -38,8 +40,7 @@ public:
 };
 
 struct  Node
-{
-    int id;
+{    
     int globalIndex;
     double x, y;
     double value;
@@ -49,12 +50,12 @@ struct  Node
     Node() { this->x = 0; this->y = 0; this->value = 0; this->normalDerivation = 0; isEssential = false;}
     Node(double x, double y) { this->x = x; this->y = y; this->value = 0; this->normalDerivation = 0; isEssential = false;}
 
-    inline Node operator+(const Node &vec) const { return Node(x + vec.x, y + vec.y); }
-    inline Node operator-(const Node &vec) const { return Node(x - vec.x, y - vec.y); }
+    inline Node operator+(const Node & vec) const { return Node(x + vec.x, y + vec.y); }
+    inline Node operator-(const Node & vec) const { return Node(x - vec.x, y - vec.y); }
     inline Node operator*(double num) const { return Node(x * num, y * num); }
     inline Node operator/(double num) const { return Node(x / num, y / num); }
-    inline double operator&(const Node &vec) const { return x*vec.x + y*vec.y; } // dot product
-    inline double operator%(const Node &vec) const { return x*vec.y - y*vec.x; } // cross product
+    inline double operator&(const Node & vec) const { return x * vec.x + y * vec.y; } // dot product
+    inline double operator%(const Node & vec) const { return x * vec.y - y * vec.x; } // cross product
     bool operator!=(const Node &vec) const;
     bool operator==(const Node &vec) const;
 
@@ -68,8 +69,8 @@ struct  Node
     {
         double m = magnitude();
 
-        double mx = x/m;
-        double my = y/m;
+        double mx = x / m;
+        double my = y / m;
 
         return Node(mx, my);
     }

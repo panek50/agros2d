@@ -20,8 +20,8 @@ public:
     virtual Hermes::Hermes2D::ExactSolutionScalar<double>* getSolution();
 
 private:
-   Bem * m_bem;
-   BemSolution<double> * m_solution;
+    QSharedPointer<Bem>  m_bem;
+    QSharedPointer < BemSolution<double> >  m_solution;
 };
 
 #endif // BEM_INTERFACE_H

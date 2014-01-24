@@ -18,22 +18,25 @@
 
 #include <cblas.h>
 #include <lapacke.h>
+#include <complex>
 
 #include "bem.h"
 #include "mesh.h"
 #include "quad_tables.h"
 
+# define J std::complex<double>(0,1)
+
 Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
 {
     m_fieldInfo = fieldInfo;
-    m_mesh = mesh;
+    m_hermesMesh = mesh;
     m_polyOrder = 1;
 }
 
 void Bem::readMesh()
 {
     Hermes::Hermes2D::Element *e;
-    for_all_active_elements(e, m_mesh)
+    for_all_active_elements(e, m_hermesMesh)
     {
         QList<Node *> elementNodes;
         SceneBoundary *boundary = 0;
@@ -52,7 +55,8 @@ void Bem::readMesh()
                         double value = boundary->value(boundaryType.id()).number();
                         bool isEssential = (boundaryType.essential().count() > 0);
                         Node * firstNode,  * secondNode;
-                        if(atoi(m_mesh->get_boundary_markers_conversion().get_user_marker(m_mesh->get_base_edge_node(e, i)->marker).marker.c_str()) == j)
+                       // qDebug() << m_hermesMesh->get_num_vertex_nodes();
+                        if(atoi(m_hermesMesh->get_boundary_markers_conversion().get_user_marker(e->en[i]->marker).marker.c_str()) == j)
                         {
                             if(!mesh.m_boundaryNodes.contains(node))
                             {
@@ -137,8 +141,9 @@ void Bem::readMesh()
         }
         Element element(elementNodes);
         element.setArea(e->get_area());
-        SceneLabel * label =  Agros2D::scene()->labels->at(atoi(m_mesh->get_element_markers_conversion().get_user_marker(e->marker).marker.c_str()));
-        qDebug() << label->marker(m_fieldInfo)->value(m_fieldInfo->materialTypeVariables().at(0).id()).toString();
+        SceneLabel * label =  Agros2D::scene()->labels->at(atoi(m_hermesMesh->get_element_markers_conversion().get_user_marker(e->marker).marker.c_str()));
+//        element.setValue(label->marker(m_fieldInfo)->value(m_fieldInfo->materialTypeVariables().at(0).id()).number());
+        element.setValue(1.);
         mesh.m_elements.append(element);
     }
 
@@ -174,72 +179,75 @@ void Bem::readMesh()
     }
 
 
-    //    if(m_polyOrder == 0)
-    //    {
-    //        mesh.m_nodes.clear();
+    if(m_polyOrder == 0)
+    {
+        mesh.m_nodes.clear();
 
-    //        for(int i = 0; i < mesh.m_segments.count(); i++)
+        for(int i = 0; i < mesh.m_segments.count(); i++)
+        {
+            Segment & segment = mesh.m_segments[i];
+
+            /// ToDo: Fix memory leak
+            Node * node = new Node(segment.gravity());
+            if (segment.isEssential())
+            {
+                node->isEssential = true;
+                node->value = segment.value();
+            }
+            else
+            {
+                node->normalDerivation = segment.derivation();
+            }
+
+            node->globalIndex = i;
+
+            mesh.m_nodes.append(node);
+            segment.m_points.clear();
+            segment.m_points.append(node);
+        }
+    }
+
+    //        qDebug() << "Inner nodes:";
+    //        foreach(Node node, mesh.m_innerNodes)
     //        {
-    //            Segment & segment = mesh.m_segments[i];
-    //            Node * node = new Node(segment.gravity());
-    //            if (segment.isEssential())
-    //            {
-    //                node->isEssential = true;
-    //                node->value = segment.value();
+    //            qDebug() << node.toString();
+    //        }
+
+    //        qDebug() << "---------";
+
+    //        qDebug() << "Boundary nodes:";
+    //        foreach(Node node,mesh.m_boundaryNodes)
+    //        {
+    //            qDebug() << node.toString();
+    //            qDebug() << node.globalIndex;
+    //        }
+
+    //        qDebug() << "Mesh nodes:";
+    //        for(int i = 0; i < mesh.m_nodes.count(); i++)
+    //        {
+    //            qDebug() << mesh.m_nodes[i]->toString();
+    //            qDebug() << mesh.m_nodes[i]->globalIndex;
+    //        }
+
+
+    //        qDebug() << "\n Elements:";
+    //        foreach(Element element, mesh.m_elements)
+    //        {
+    //            qDebug() << element.m_nodes.count();
+    //            foreach (Node * node, element.m_nodes) {
+    //                qDebug() << node->toString();
     //            }
-    //            else
-    //            {
-    //                node->normalDerivation = segment.derivation();
+    //            qDebug() << "-------------------------";
+    //        }
+
+    //        qDebug() << "Segments:";
+    //        foreach(Segment segment, mesh.m_segments)
+    //        {
+    //            foreach (Node * node, segment.m_points) {
+    //                qDebug() << node->toString();
     //            }
-
-    //            node->globalIndex = i;
-
-    //            mesh.m_nodes.append(node);
-    //            segment.m_points.append(node);
+    //            qDebug() << "-------------------------";
     //        }
-    //    }
-
-    //    qDebug() << "Inner nodes:";
-    //    foreach(Node node, mesh.m_innerNodes)
-    //    {
-    //        qDebug() << node.toString();
-    //    }
-
-    //    qDebug() << "---------";
-
-    //    qDebug() << "Boundary nodes:";
-    //    foreach(Node node,mesh.m_boundaryNodes)
-    //    {
-    //        qDebug() << node.toString();
-    //        qDebug() << node.globalIndex;
-    //    }
-
-    //    qDebug() << "Mesh nodes:";
-    //    for(int i = 0; i < mesh.m_nodes.count(); i++)
-    //    {
-    //        qDebug() << mesh.m_nodes[i]->toString();
-    //        qDebug() << mesh.m_nodes[i]->globalIndex;
-    //    }
-
-
-    //    qDebug() << "\n Elements:";
-    //    foreach(Element element, mesh.m_elements)
-    //    {
-    //        qDebug() << element.m_nodes.count();
-    //        foreach (Node * node, element.m_nodes) {
-    //            qDebug() << node->toString();
-    //        }
-    //        qDebug() << "-------------------------";
-    //    }
-
-    //    qDebug() << "Segments:";
-    //    foreach(Segment segment, mesh.m_segments)
-    //    {
-    //        foreach (Node * node, segment.m_nodes) {
-    //            qDebug() << node->toString();
-    //        }
-    //        qDebug() << "-------------------------";
-    //    }
 }
 
 QString Bem::toString()
@@ -304,6 +312,7 @@ void Bem::shapeFunction(int polyOrder, double xi, double * Ni)
     if (polyOrder == 0)
     {
         Ni[0] = 1;
+        return;
     }
 
     Ni[0] = 0.5 * (1 - xi);
@@ -424,6 +433,25 @@ double Bem::kernel_laplace2D_derivation(Node refNode, Segment segment, double xi
     return - 1.0 / (2 * M_PI) * (n.x *  r.x  + n.y * r.y) / (rNorm * rNorm);
 }
 
+std::complex<double> Bem::kernel_helmholtz2D(Node refNode, Segment segment, double xi)
+{
+    double r = globalCoordinates(xi, segment).distanceOf(refNode);
+    return exp(J * r) / (4 * M_PI * r);
+}
+
+std::complex<double> Bem::kernel_helmholtz2D_derivation(Node refNode, Segment segment, double xi)
+{
+    Node r = globalCoordinates(xi, segment) - refNode;
+    Node n = normalVector(xi, segment);
+    double rNorm = globalCoordinates(xi, segment).distanceOf(refNode);
+    return - 1.0 / (2 * M_PI ) * (n.x *  r.x  + n.y * r.y) / (rNorm * rNorm) * (1.0 - J * rNorm) * exp(J * rNorm);
+}
+
+void Bem::solveComplex()
+{
+
+}
+
 void Bem::solve()
 {
 
@@ -435,6 +463,7 @@ void Bem::solve()
     BemMatrix C(n, n);
     BemVector diagonal(n);
     BemVector rsv(n);
+    BemVector bp(n);
 
     // Loop over all nodes
     Node node;
@@ -470,22 +499,24 @@ void Bem::solve()
                             if(k == 0)
                             {
                                 xi = 2 * gaussLeguerreCoords[order][l] - 1.0;
-                                dxdb = 2;
+                                dxdb = + 2;
                             }
                             else
                             {
                                 xi = 1.0 - 2 * gaussLeguerreCoords[order][l];
-                                dxdb = - 2;
+                                dxdb = + 2;
                             }
                         }
-                        double Ni[2];
+                        double Ni[2];                        
+                        double Sf[2];
                         shapeFunction(m_polyOrder, gaussCoords[order][l], Ni);
-                        dU  +=   - 1 / ( 2 * M_PI) * segment.m_logJacobian * Ni[k] *  jac * gaussWeights[order][l] - 1 / (2 * M_PI) * dxdb * xi *  jac * gaussLeguerreWeights[order][l];
-                    }
+                        shapeFunction(m_polyOrder, gaussLeguerreCoords[order][l], Sf);
+                        dU  +=   - 1 / ( 2 * M_PI) *  Ni[k] * jac * segment.m_logJacobian * gaussWeights[order][l] + 1 / (2 * M_PI) * dxdb  * Sf[k] * jac * gaussLeguerreWeights[order][l];
+                    }                                        
 
-                    if(segment.m_nodes[k]->isEssential)
+                    if(segment.m_points[k]->isEssential)
                     {
-                        A(i, index) +=  -dU;
+                        A(i, index) +=  -dU;                        
                     }
                     else
                     {
@@ -503,7 +534,7 @@ void Bem::solve()
                     }
 
                     diagonal(i) += dT;
-                    if(segment.m_nodes[k]->isEssential)
+                    if(segment.m_points[k]->isEssential)
                     {
                         A(i, index) -=  dU;
                         C(i, index) -=  dT;
@@ -531,15 +562,22 @@ void Bem::solve()
     }
 
 
-    //        qDebug() << diagonal.toString();
-    //        qDebug() << A.toString();
-    //        qDebug() << C.toString();
+//                qDebug() << diagonal.toString();
+//                qDebug() << A.toString();
+//                qDebug() << C.toString();
 
 
-    BemVector bp(n);
-    bp.clear();
+//    int m = mesh.m_elements.count();
+//    for(int i = 0; i < n; i++ )
+//    {
+//        for(int j = 0; j < m; j++)
+//        {
+//            double R = sqrt((node.x - mesh.m_elements[j].gravity().x) * (node.x - mesh.m_elements[j].gravity().x) + (node.y - mesh.m_elements[j].gravity().y) * (node.y - mesh.m_elements[j].gravity().y));
+//            bp(i) = bp(i) + 1 / (2 * M_PI) * mesh.m_elements[j].value() * log(R) * mesh.m_elements[j].araea();
+//        }
+//    }
 
-
+    // qDebug() << bp.toString();
 
     for (int j = 0; j < n; j++)
     {
@@ -559,6 +597,8 @@ void Bem::solve()
 
     /// ToDo: Poisson - right side vector
 
+
+    bp.clear();
     BemVector b(n);
     b = C * rsv + bp;
 
@@ -566,7 +606,6 @@ void Bem::solve()
 
 
     results = A.solve(b);
-
 
 
     for (int i = 0; i < n; i++)
@@ -596,25 +635,22 @@ void Bem::solve()
     myTimer.start();
 
     domainSolution();
-
     int nMilliseconds = myTimer.elapsed();
     qDebug() << nMilliseconds;
 
 }
 
 void Bem::domainSolution()
-{
-
+{    
     for(int i = 0; i < mesh.m_innerNodes.count(); i++)
     {
         mesh.m_innerNodes[i].value = potential(mesh.m_innerNodes.at(i).x,  mesh.m_innerNodes.at(i).y);
-        //       qDebug() << potential(mesh.m_innerNodes.at(i).x,  mesh.m_innerNodes.at(i).y);
     }
 
-    for(int i = 0; i < mesh.m_nodes.count(); i++)
+    for(int i = 0; i < mesh.m_boundaryNodes.count(); i++)
     {
-        mesh.m_nodes[i]->value = potential(mesh.m_nodes.at(i)->x,  mesh.m_nodes.at(i)->y);
-        //       qDebug() << potential(mesh.m_nodes.at(i)->x,  mesh.m_nodes.at(i)->y);
+        mesh.m_boundaryNodes[i].value = potential(mesh.m_boundaryNodes.at(i).x,  mesh.m_boundaryNodes.at(i).y);
+       // qDebug() << potential(mesh.m_nodes.at(i)->x,  mesh.m_nodes.at(i)->y);
     }
 
     //   qDebug() << "Solution, elements:";
@@ -714,9 +750,8 @@ double Bem::potential(double x, double y)
 //    int m = mesh.m_elements.count();
 //    for(int i = 0; i < m; i++)
 //    {
-//        double R = sqrt((p.x - mesh.m_elements[i].gravity().x) * (p.x - mesh.m_elements[i].gravity().x) - (p.y - mesh.m_elements[i].gravity().y) * (p.y - mesh.m_elements[i].gravity().y));
-//        u = u - 1 / (2 * M_PI) * mesh.m_elements[i].f() * log(R) * mesh.m_elements[i].araea();
-//        qDebug() << u;
+//        double R = sqrt((p.x - mesh.m_elements[i].gravity().x) * (p.x - mesh.m_elements[i].gravity().x) + (p.y - mesh.m_elements[i].gravity().y) * (p.y - mesh.m_elements[i].gravity().y));
+//        u = u - 1 / (2 * M_PI) * mesh.m_elements[i].value() * log(R) * mesh.m_elements[i].araea();
 //    }
 
     // qDebug("Time elapsed: %f ms", t.elapsed());

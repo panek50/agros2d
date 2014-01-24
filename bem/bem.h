@@ -27,6 +27,7 @@ public:
     void readMesh();
     void assemblyMatrices();
     void solve();
+    void solveComplex();
     void domainSolution();
     double getValue(double x, double y);
 
@@ -36,6 +37,9 @@ public:
     double kernel_length(Node refNode, Segment segment, double xi);
     double kernel_laplace2D_derivation(Node refNode, Segment segment, double xi);
     double kernel_laplace2D(Node refNode, Segment segment, double xi);
+    std::complex<double> kernel_helmholtz2D_derivation(Node refNode, Segment segment, double xi);
+    std::complex<double> kernel_helmholtz2D(Node refNode, Segment segment, double xi);
+
 
     QString toString();
     Node integral(Node v, Node a, Node b);
@@ -50,7 +54,7 @@ public:
 private:
     Mesh mesh;
     unsigned int m_polyOrder;
-    MeshSharedPtr m_mesh;
+    MeshSharedPtr m_hermesMesh;
     FieldInfo * m_fieldInfo;
 };
 
@@ -66,12 +70,12 @@ public:
     virtual Hermes::Hermes2D::MeshFunction<Scalar>* clone() const;    
     /// Saves the exact solution to an XML file.
     void save(const char* filename) const { }    
-    void setSolver(Bem * bem) { m_bem = bem; }    
+    void setSolver(QSharedPointer<Bem> bem) { m_bem = bem; }
 
 protected:    
     // virtual void precalculate(int order, int mask) { qDebug() << "OK";}
     double constant;
-    Bem * m_bem;
+    QSharedPointer<Bem> m_bem;
 };
 
 
