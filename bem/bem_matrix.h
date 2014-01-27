@@ -14,11 +14,11 @@
 #include <lapacke.h>
 #include <cblas.h>
 
+template <typename Type>
 class BemMatrix;
-class BemVector;
-class BemComplexVector;
-class BemComplexMatrix;
 
+template <typename Type>
+class BemVector;
 
 enum BemVectorType
 {
@@ -35,7 +35,7 @@ public:
     }
 };
 
-
+template <typename Type>
 class BemMatrix
 {
 public:
@@ -43,29 +43,29 @@ public:
     BemMatrix(int m_row, int m_column);
     BemMatrix(const BemMatrix  &m);
     // BemMatrix(BemVector & v);
-    BemMatrix(double array[], int row, int column);
+    BemMatrix(Type array[], int row, int column);
     ~BemMatrix();
 
     BemMatrix & operator=(const BemMatrix & m);
     bool operator== (const BemMatrix & m) const;
-    BemMatrix operator+(const BemMatrix & m) const;
-    BemMatrix operator-(const BemMatrix & m);
-    BemMatrix operator*(BemMatrix & m);
-    BemMatrix operator*(const double & x) const;
-    BemVector operator*(BemVector & v);
-    BemMatrix operator/(double x) {return operator *(1/x); }
-    BemVector solve(BemVector & v);
-    friend BemMatrix operator*(double x, BemMatrix m);
+    BemMatrix<Type> operator+(const BemMatrix & m) const;
+    BemMatrix<Type> operator-(const BemMatrix & m);
+    BemMatrix<Type> operator*(BemMatrix & m);
+    BemMatrix<Type> operator*(const Type & x) const;
+    BemVector<Type> operator*(BemVector<Type> & v);
+    // BemMatrix<Type> operator/(Type x) {return operator * (1 / x); }
+    BemVector<Type> solve(BemVector<Type> & v);
+    friend BemMatrix<Type> operator*(Type x, BemMatrix<Type> m);
     // friend BemVector operator*(BemVector v, BemMatrix m);
-    friend BemMatrix operator/(double x, BemMatrix m);
+    friend BemMatrix<Type> operator/(Type x, BemMatrix<Type> m);
 
     int row() const { return m_row; }
     void setRow(int row) { m_row = row; }
     int column() const { return m_column; }
     void setColumn(int column) { m_column = column; }
 
-    double & operator() (unsigned row, unsigned col) const;
-    void set(int m_row, int m_column, double value);
+    Type & operator() (unsigned row, unsigned col) const;
+    void set(int m_row, int m_column, Type value);
 
     QString toString();
     int countColumn();
@@ -74,7 +74,7 @@ public:
     void clear();
     void gaussElim();
     void luFactorisation();
-    double *m_array;
+    Type *m_array;
 
 protected:
     void createArray(int m_row, int m_column);    
@@ -82,6 +82,7 @@ protected:
     int m_column;
 };
 
+template <typename Type>
 class BemVector
 {
 public:
@@ -90,102 +91,26 @@ public:
     BemVector(const BemVector & v);
     ~BemVector() { delete[] m_array; }
 
-    double & operator() (int i);
+    Type & operator() (int i);
     void operator+=(BemVector & v);
-    BemVector operator +(const BemVector & m) const;
-    BemVector operator * (const double & x) const;
-    BemVector operator * (BemMatrix & m) const;
-    BemVector & operator=(const BemVector & v);
+    BemVector operator +(const BemVector<Type> & m) const;
+    BemVector operator * (const Type & x) const;
+    BemVector operator * (BemMatrix<Type> & m) const;
+    BemVector<Type> & operator=(const BemVector<Type> & v);
 
     QString toString();
     int n() const { return m_n; }
-    double length() const;
-    friend BemVector BemMatrix::solve(BemVector & v);
+    // double length() const;
+    // friend BemVector<Type> BemMatrix<Type>::solve(BemVector<Type> & v);
     void clear();
+    Type * m_array;
 
-private:
-    double * m_array;
+private:  
     int m_n;
 };
 
-
-class BemComplexMatrix
-{
-public:
-    BemComplexMatrix() { assert(0); }
-    BemComplexMatrix(int m_row, int m_column);
-    BemComplexMatrix(const BemComplexMatrix  &m);
-    // BemMatrix(BemVector & v);
-    BemComplexMatrix(double array[], int row, int column);
-    ~BemComplexMatrix();
-
-    BemComplexMatrix & operator=(const BemComplexMatrix & m);
-    bool operator== (const BemComplexMatrix & m) const;
-    BemComplexMatrix operator+(const BemComplexMatrix & m) const;
-    BemComplexMatrix operator-(const BemComplexMatrix & m);
-    BemComplexMatrix operator*(BemComplexMatrix & m);
-    BemComplexMatrix operator*(const double & x) const;
-    BemComplexVector operator*(BemComplexVector & v);
-    BemComplexMatrix operator/(double x) {return operator *(1/x); }
-    BemComplexVector solve(BemComplexVector &v);
-    friend BemComplexMatrix operator*(double x, BemComplexMatrix m);
-    // friend BemVector operator*(BemVector v, BemMatrix m);
-    friend BemComplexMatrix operator/(double x, BemComplexMatrix m);
-
-    int row() const { return m_row; }
-    void setRow(int row) { m_row = row; }
-    int column() const { return m_column; }
-    void setColumn(int column) { m_column = column; }
-
-
-    std::complex<double> & operator() (unsigned row, unsigned col);
-
-    void set(int m_row, int m_column, std::complex<double> number);
-    QString toString();
-    int countColumn();
-    int countRow();
-    void eye();
-    void clear();
-    void gaussElim();
-    void luFactorisation();
-    std::complex<double> *m_array;
-
-protected:
-    void createArray(int m_row, int m_column);
-    int m_row;
-    int m_column;
-};
-
-class BemComplexVector
-{
-public:
-    BemComplexVector() { assert(0); }
-    BemComplexVector(int n);
-    BemComplexVector(const BemComplexVector & v);
-    ~BemComplexVector() { delete[] m_array; }
-
-    std::complex<double> & operator() (int i);
-    void operator+=(BemComplexVector & v);
-    BemComplexVector operator +(const BemComplexVector & v) const;
-    BemComplexVector operator * (const double & x) const;
-    BemComplexVector operator * (BemComplexMatrix & m) const;
-    BemComplexVector & operator=(const BemComplexVector & v);
-
-    QString toString();
-    int n() const { return m_n; }
-    double length() const;
-    friend BemComplexVector BemComplexMatrix::solve(BemComplexVector & v);
-    void clear();
-   std::complex<double> * m_array;
-
-private:    
-    int m_n;
-};
-
-Q_DECLARE_METATYPE(BemMatrix)
-Q_DECLARE_METATYPE(BemVector)
-Q_DECLARE_METATYPE(BemComplexMatrix)
-Q_DECLARE_METATYPE(BemComplexVector)
+Q_DECLARE_METATYPE(BemMatrix<double>)
+Q_DECLARE_METATYPE(BemVector<double>)
 #endif // MATRIX_H
 
 

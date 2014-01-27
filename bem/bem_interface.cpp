@@ -37,6 +37,7 @@ void BemInterface::solve(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D
     }
     m_bem->readMesh();
     m_bem->solve();
+    // m_bem->solveComplex();
 
     m_solution =  new BemSolution<double>(mesh);
     m_solution->setSolver(m_bem);

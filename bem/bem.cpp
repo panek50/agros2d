@@ -1,9 +1,14 @@
-#include <QTextStream>
-#include <QTime>
-#include <QtTest/QTest>
+// Bem headers
+#include "bem.h"
+#include "mesh.h"
+#include "quad_tables.h"
+
+// Agros headers
+// general stuff
 #include "util.h"
 #include "util/global.h"
 
+// agros-library
 #include "../agros2d-library/scene.h"
 #include "../agros2d-library/scenemarker.h"
 #include "../agros2d-library/scenebasic.h"
@@ -14,17 +19,24 @@
 #include "../agros2d-library/hermes2d/field.h"
 #include "../agros2d-library/hermes2d/problem.h"
 #include "../agros2d-library/hermes2d/problem_config.h"
+
+// Hermes libraries
 #include "../hermes2d/include/function/exact_solution.h"
 
+// mathematical libraries
 #include <cblas.h>
 #include <lapacke.h>
+
+// QT headers
+#include <QTextStream>
+#include <QTime>
+#include <QtTest/QTest>
+
+// Std headers
 #include <complex>
 
-#include "bem.h"
-#include "mesh.h"
-#include "quad_tables.h"
-
-# define J std::complex<double>(0,1)
+// complex unit definition
+const std::complex<double> J(0,1);
 
 Bem::Bem(FieldInfo * const fieldInfo, MeshSharedPtr mesh)
 {
@@ -162,9 +174,9 @@ void Bem::readMesh()
             if (segment.isEssential())
             {
                 segment.firstNode().isEssential = true;
-                segment.firstNode().value = segment.value();
+                segment.firstNode().real = segment.value();
                 segment.lastNode().isEssential = true;
-                segment.lastNode().value = segment.value();
+                segment.lastNode().real = segment.value();
             }
             else
             {
@@ -192,7 +204,7 @@ void Bem::readMesh()
             if (segment.isEssential())
             {
                 node->isEssential = true;
-                node->value = segment.value();
+                node->real = segment.value();
             }
             else
             {
@@ -290,7 +302,7 @@ Node Bem::globalCoordinates(double xi, Segment segment)
 {
     Node v;
     int n = segment.geometricOrder();
-    BemVector Sf(n);
+    BemVector<double> Sf(n);
 
     double Ni[2];
     shapeFunction(n, xi, Ni);
@@ -328,9 +340,9 @@ void Bem::shapeFunction(int polyOrder, double xi, double * Ni)
     Ni[1] = Ni[1] - 0.5 * Ni[2];
 }
 
-BemVector Bem::shapeFunctionDerivative(int polyOrder, double xi)
+BemVector<double> Bem::shapeFunctionDerivative(int polyOrder, double xi)
 {
-    BemVector Dn = BemVector(polyOrder);
+    BemVector<double> Dn = BemVector<double>(polyOrder);
 
     Dn(0) = -0.5;
     Dn(1) = 0.5;
@@ -362,7 +374,7 @@ double Bem::jacobian(int polyOrder, double xi, Segment segment)
 Node Bem::normalVector(double xi, Segment segment)
 {
     int polyOrder = segment.geometricOrder();
-    BemVector Dn = shapeFunctionDerivative(polyOrder, xi);
+    BemVector<double> Dn = shapeFunctionDerivative(polyOrder, xi);
     Node dVec;
     Node n;
 
@@ -449,9 +461,213 @@ std::complex<double> Bem::kernel_helmholtz2D_derivation(Node refNode, Segment se
     return - 1.0 / (2 * M_PI ) * (n.x *  r.x  + n.y * r.y) / (rNorm * rNorm) * (1.0 - J * rNorm) * exp(J * rNorm);
 }
 
-void Bem::solveComplex()
-{
+//void Bem::solveComplex()
+//{
+//    int order = 7;
+//    int n = mesh.m_segments.count();
 
+//    BemComplexMatrix A(n, n);
+//    BemComplexMatrix C(n, n);
+//    BemComplexVector diagonal(n);
+//    BemComplexVector rsv(n);
+//    BemComplexVector bp(n);
+
+//    // Loop over all nodes
+//    Node node;
+
+//    for (int i = 0; i < n; i++)
+//    {
+//        node = * mesh.m_nodes[i];
+
+//        // Loop over all elements
+//        for (int j = 0; j < n; j++)
+//        {
+//            Segment segment = mesh.m_segments[j];
+//            // Loop over element nodes
+//            for(int k = 0; k <= m_polyOrder; k++)
+//            {
+//                int index = segment.m_points[k]->globalIndex;
+//                double dU = 0;
+//                double dT = 0;
+
+//                if(i == index)
+//                {
+//                    for(int l = 0; l <= order; l++)
+//                    {
+//                        double xi;
+//                        double jac = segment.m_jacobian;
+//                        double dxdb = 2;
+//                        if(m_polyOrder == 0)
+//                        {
+//                            xi = gaussLeguerreCoords[order][l];
+//                        }
+//                        else
+//                        {
+//                            if(k == 0)
+//                            {
+//                                xi = 2 * gaussLeguerreCoords[order][l] - 1.0;
+//                                dxdb = + 2;
+//                            }
+//                            else
+//                            {
+//                                xi = 1.0 - 2 * gaussLeguerreCoords[order][l];
+//                                dxdb = + 2;
+//                            }
+//                        }
+//                        double Ni[2];
+//                        double Sf[2];
+//                        shapeFunction(m_polyOrder, gaussCoords[order][l], Ni);
+//                        shapeFunction(m_polyOrder, gaussLeguerreCoords[order][l], Sf);
+//                        dU  +=   - 1 / ( 2 * M_PI) *  Ni[k] * jac * segment.m_logJacobian * gaussWeights[order][l] + 1 / (2 * M_PI) * dxdb  * Sf[k] * jac * gaussLeguerreWeights[order][l];
+//                    }
+
+//                    if(segment.m_points[k]->isEssential)
+//                    {
+//                        A(i, index) +=  -dU;
+//                    }
+//                    else
+//                    {
+//                        C(i, index) += dU;
+//                    }
+
+//                } else
+//                {
+//                    for(int l = 0; l <= order; l++)
+//                    {
+//                        double Ni[2];
+//                        shapeFunction(m_polyOrder, gaussCoords[order][l], Ni);
+//                        dU += Ni[k] * kernel_laplace2D(node, segment, gaussCoords[order][l]) * segment.m_jacobian * gaussWeights[order][l];
+//                        dT += Ni[k] * kernel_laplace2D_derivation(node, segment, gaussCoords[order][l]) * segment.m_jacobian * gaussWeights[order][l];
+//                    }
+
+//                    diagonal(i) += dT;
+//                    if(segment.m_points[k]->isEssential)
+//                    {
+//                        A(i, index) -=  dU;
+//                        C(i, index) -=  dT;
+//                    }
+//                    else
+//                    {
+//                        A(i, index) +=  dT;
+//                        C(i, index) +=  dU;
+//                    }
+//                }
+//            }
+//        }
+//    }
+
+//    for(int i = 0; i < n; i++)
+//    {
+//        if(mesh.m_nodes[i]->isEssential)
+//        {
+//            C(i, i) =  diagonal(i);
+//        }
+//        else
+//        {
+//            A(i,i) =  - diagonal(i);
+//        }
+//    }
+
+
+//    //                qDebug() << diagonal.toString();
+//    //                qDebug() << A.toString();
+//    //                qDebug() << C.toString();
+
+
+//    //    int m = mesh.m_elements.count();
+//    //    for(int i = 0; i < n; i++ )
+//    //    {
+//    //        for(int j = 0; j < m; j++)
+//    //        {
+//    //            double R = sqrt((node.x - mesh.m_elements[j].gravity().x) * (node.x - mesh.m_elements[j].gravity().x) + (node.y - mesh.m_elements[j].gravity().y) * (node.y - mesh.m_elements[j].gravity().y));
+//    //            bp(i) = bp(i) + 1 / (2 * M_PI) * mesh.m_elements[j].value() * log(R) * mesh.m_elements[j].araea();
+//    //        }
+//    //    }
+
+//    // qDebug() << bp.toString();
+
+//    for (int j = 0; j < n; j++)
+//    {
+//        int index = mesh.m_nodes[j]->globalIndex;
+//        if(mesh.m_nodes[j]->isEssential)
+//        {
+//            rsv(index) = mesh.m_nodes[j]->real;
+//        }
+
+//        else
+//        {
+//            rsv(index) = mesh.m_nodes[j]->normalDerivation;
+//        }
+//    }
+
+//    //    qDebug() << rsv.toString();
+
+//    /// ToDo: Poisson - right side vector
+
+
+//    bp.clear();
+//    BemComplexVector b(n);
+//    b = C * rsv + bp;
+
+//    BemComplexVector results(n);
+
+
+//    results = A.solve(b);
+
+
+//    for (int i = 0; i < n; i++)
+//    {
+//        if(mesh.m_nodes[i]->isEssential)
+//        {
+//            mesh.m_nodes[i]->normalDerivation = results(i).real();
+
+//        }
+//        else
+//        {
+//            mesh.m_nodes[i]->real = results(i).real();
+//        }
+//    }
+
+//    //        for (int i = 0; i < n; i++)
+//    //        {
+//    //            qDebug() << "Index:" << i;
+//    //            qDebug() << mesh.m_nodes[i]->toString();
+//    //            qDebug() << mesh.m_nodes[i]->value;
+//    //            qDebug() << mesh.m_nodes[i]->normalDerivation;
+//    //            qDebug() << mesh.m_nodes[i]->isEssential;
+//    //        }
+
+
+//    QTime myTimer;
+//    myTimer.start();
+//    domainSolution();
+//    int nMilliseconds = myTimer.elapsed();
+//    qDebug() << nMilliseconds;
+
+//}
+
+void Bem::domainSolution()
+{
+    for(int i = 0; i < mesh.m_innerNodes.count(); i++)
+    {
+        mesh.m_innerNodes[i].real = potentialInner(mesh.m_innerNodes.at(i).x,  mesh.m_innerNodes.at(i).y);
+    }
+
+    for(int i = 0; i < mesh.m_boundaryNodes.count(); i++)
+    {
+        mesh.m_boundaryNodes[i].real = potentialBoundary(mesh.m_boundaryNodes.at(i).x,  mesh.m_boundaryNodes.at(i).y);
+        // qDebug() << potential(mesh.m_nodes.at(i)->x,  mesh.m_nodes.at(i)->y);
+    }
+
+    //   qDebug() << "Solution, elements:";
+    //    foreach(Element element, mesh.m_elements)
+    //    {
+    //        for(int i = 0; i < element.m_nodes.count(); i++)
+    //        {
+    //            element.nodeValues[i] = element.m_nodes.at(i)->value;
+    //            //           qDebug() << element.nodeValues[i];
+    //        }
+    //    }
 }
 
 void Bem::solve()
@@ -459,11 +675,12 @@ void Bem::solve()
     int order = 7;
     int n = mesh.m_segments.count();
 
-    BemMatrix A(n, n);
-    BemMatrix C(n, n);
-    BemVector diagonal(n);
-    BemVector rsv(n);
-    BemVector bp(n);
+    BemMatrix<double> A(n, n);
+    BemMatrix<double> C(n, n);
+    BemVector<double> diagonal(n);
+    BemVector<double> rsv(n);
+    BemVector<double> bp(n);
+
 
     // Loop over all nodes
     Node node;
@@ -584,7 +801,7 @@ void Bem::solve()
         int index = mesh.m_nodes[j]->globalIndex;
         if(mesh.m_nodes[j]->isEssential)
         {
-            rsv(index) = mesh.m_nodes[j]->value;
+            rsv(index) = mesh.m_nodes[j]->real;
         }
 
         else
@@ -599,12 +816,9 @@ void Bem::solve()
 
 
     bp.clear();
-    BemVector b(n);
+    BemVector<double> b(n);
     b = C * rsv + bp;
-
-    BemVector results(n);
-
-
+    BemVector<double> results(n);
     results = A.solve(b);
 
 
@@ -617,7 +831,7 @@ void Bem::solve()
         }
         else
         {
-            mesh.m_nodes[i]->value = results(i);
+            mesh.m_nodes[i]->real = results(i);
         }
     }
 
@@ -639,29 +853,6 @@ void Bem::solve()
 
 }
 
-void Bem::domainSolution()
-{    
-    for(int i = 0; i < mesh.m_innerNodes.count(); i++)
-    {
-        mesh.m_innerNodes[i].value = potentialInner(mesh.m_innerNodes.at(i).x,  mesh.m_innerNodes.at(i).y);
-    }
-
-    for(int i = 0; i < mesh.m_boundaryNodes.count(); i++)
-    {
-        mesh.m_boundaryNodes[i].value = potentialBoundary(mesh.m_boundaryNodes.at(i).x,  mesh.m_boundaryNodes.at(i).y);
-        // qDebug() << potential(mesh.m_nodes.at(i)->x,  mesh.m_nodes.at(i)->y);
-    }
-
-    //   qDebug() << "Solution, elements:";
-    //    foreach(Element element, mesh.m_elements)
-    //    {
-    //        for(int i = 0; i < element.m_nodes.count(); i++)
-    //        {
-    //            element.nodeValues[i] = element.m_nodes.at(i)->value;
-    //            //           qDebug() << element.nodeValues[i];
-    //        }
-    //    }
-}
 
 double Bem::getValue(double x, double y)
 {
@@ -704,7 +895,7 @@ double Bem::potentialInner(double x, double y)
                 dT += Ni[k] * kernel_laplace2D_derivation(p, segment, gaussCoords[order][l]) * jac * gaussWeights[order][l];
                 dU += Ni[k] * kernel_laplace2D(p, segment, gaussCoords[order][l]) * jac * gaussWeights[order][l];
             }
-            delta_u =   - dT * segment.m_points[k]->value + dU * segment.m_points[k]->normalDerivation;
+            delta_u =   - dT * segment.m_points[k]->real + dU * segment.m_points[k]->normalDerivation;
             u = u + delta_u;
             dT = 0;
             dU = 0;
@@ -733,22 +924,22 @@ double Bem::potentialBoundary(double x, double y)
         if(p.distanceOf(segment.firstNode()) < EPS_ZERO)
         {
             if(m_polyOrder == 0)
-                return segment.m_points[0]->value;
+                return segment.m_points[0]->real;
 
-            return segment.firstNode().value;
+            return segment.firstNode().real;
         }
 
         if(p.distanceOf(segment.lastNode()) < EPS_ZERO)
         {
             if(m_polyOrder == 0)
-                return segment.m_points[0]->value;
+                return segment.m_points[0]->real;
 
-            return segment.lastNode().value;
+            return segment.lastNode().real;
         }
 
         if(p.distanceOf(segment.gravity()) < EPS_ZERO)
         {
-            return segment.m_points[0]->value;
+            return segment.m_points[0]->real;
         }
     }
 }

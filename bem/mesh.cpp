@@ -11,15 +11,6 @@
 #include "bem_matrix.h"
 #include "mesh.h"
 
-// ToDo: Do it by pointers
-Element::Element(Node *a, Node *b, Node *c)
-{
-    m_nodes.append(a);
-    m_nodes.append(b);
-    m_nodes.append(c);
-    m_gravity = (*a + *b + *c) / 3;
-}
-
 Element::Element(QList<Node *> points)
 {
     m_nodes = points;
@@ -61,9 +52,9 @@ double Element::value(Node p)
     double y2 = this->m_nodes.at(1)->y;
     double x3 = this->m_nodes.at(2)->x;
     double y3 = this->m_nodes.at(2)->y;    
-    double value1 = m_nodes[0]->value;
-    double value2 = m_nodes[1]->value;
-    double value3 = m_nodes[2]->value;
+    double value1 = m_nodes[0]->real;
+    double value2 = m_nodes[1]->real;
+    double value3 = m_nodes[2]->real;
     double N1 = 0.5 * ((x2 * y3 - x3 * y2) + (y2 - y3) * p.x + (x3 - x2) * p.y) / area;
     double N2 = 0.5 * ((x3 * y1 - x1 * y3) + (y3 - y1) * p.x + (x1 - x3) * p.y) / area;
     double N3 = 0.5 * ((x1 * y2 - x2 * y1) + (y1 - y2) * p.x + (x2 - x1) * p.y) / area;

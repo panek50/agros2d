@@ -3,22 +3,25 @@
 
 #include <assert.h>
 #include <math.h>
-#include <complex>
 
 #define HAVE_LAPACK_CONFIG_H
 #define LAPACK_COMPLEX_CPP
 #include <lapacke.h>
 #include <cblas.h>
 
+#include <complex>
+
 #include "bem_matrix.h"
 
-BemMatrix::BemMatrix(int row, int column)
+template<class Type>
+BemMatrix<Type>::BemMatrix(int row, int column)
 {    
     this->createArray(row,column);
     this->clear();
 }
 
-BemMatrix::BemMatrix(double array[], int row, int column)
+template<class Type>
+BemMatrix<Type>::BemMatrix(Type array[], int row, int column)
 {
     int i,j;
     this->createArray(row, column);
@@ -31,7 +34,8 @@ BemMatrix::BemMatrix(double array[], int row, int column)
     }
 }
 
-BemMatrix::BemMatrix(const BemMatrix & m)
+template<class Type>
+BemMatrix<Type>::BemMatrix(const BemMatrix & m)
 {    
     this->createArray(m.m_row,m.m_column);
     for(int i = 0; i  <  this->m_row; i++)
@@ -43,14 +47,15 @@ BemMatrix::BemMatrix(const BemMatrix & m)
     }
 }
 
-
-BemMatrix::~BemMatrix()
+template<class Type>
+BemMatrix<Type>::~BemMatrix()
 {
     delete[] m_array;
 }
 
 
-BemMatrix & BemMatrix::operator=(const BemMatrix & m)
+template <class Type>
+BemMatrix<Type> & BemMatrix<Type>::operator=(const BemMatrix<Type> & m)
 {
     if(this == &m)
         return *this;
@@ -60,7 +65,7 @@ BemMatrix & BemMatrix::operator=(const BemMatrix & m)
     this->m_column = m.m_column;
     this->m_row = m.m_row;
     
-    m_array = new double[m_row * m_column];
+    m_array = new Type[m_row * m_column];
 
     for(int i = 0; i < m_row; i++)
     {
@@ -72,7 +77,8 @@ BemMatrix & BemMatrix::operator=(const BemMatrix & m)
     return *this;
 }
 
-bool BemMatrix::operator==(const BemMatrix & m) const
+template <class Type>
+bool BemMatrix<Type>::operator==(const BemMatrix & m) const
 {
     for(int i = 0; i < m_row; i++)
     {
@@ -85,10 +91,11 @@ bool BemMatrix::operator==(const BemMatrix & m) const
     return true;
 }
 
-BemMatrix  BemMatrix::operator+(const BemMatrix & m) const
+template <class Type>
+BemMatrix<Type>  BemMatrix<Type>::operator+(const BemMatrix<Type> & m) const
 {
     int i,j;
-    BemMatrix mtemp(m.m_row, m.m_column);
+    BemMatrix<Type> mtemp(m.m_row, m.m_column);
     for(i = 0; i  <  m_row; i++)
     {
         for(j = 0; j < m_column; j++)
@@ -99,11 +106,11 @@ BemMatrix  BemMatrix::operator+(const BemMatrix & m) const
     return mtemp;
 }
 
-
-BemMatrix BemMatrix::operator-(const BemMatrix & m)
+template <class Type>
+BemMatrix<Type> BemMatrix<Type>::operator-(const BemMatrix<Type> & m)
 {
     int i,j;
-    BemMatrix  mtemp(m.m_row,m.m_column);
+    BemMatrix<Type>  mtemp(m.m_row,m.m_column);
     
     for(i = 0; i  <  m_row; i++)
     {
@@ -116,14 +123,14 @@ BemMatrix BemMatrix::operator-(const BemMatrix & m)
 }
 
 
-
-BemMatrix BemMatrix::operator *(BemMatrix & m)
+template <class Type>
+BemMatrix<Type> BemMatrix<Type>::operator *(BemMatrix<Type> & m)
 {
     int i,j,k;
     if (m_column != m.row())
         throw BemException();
     {
-        BemMatrix mtemp(m_row, m.column());
+        BemMatrix<Type> mtemp(m_row, m.column());
         mtemp.clear();
 
         for(i = 0; i  <  m_row; i++)
@@ -140,9 +147,10 @@ BemMatrix BemMatrix::operator *(BemMatrix & m)
     }
 }
 
-BemVector BemMatrix::operator *(BemVector & v)
+template <class Type>
+BemVector<Type> BemMatrix<Type>::operator *(BemVector<Type> & v)
 {        
-    BemVector vtemp(v.n());
+    BemVector<Type> vtemp(v.n());
     vtemp.clear();
 
     for(int i = 0; i  <  m_row; i++)
@@ -155,9 +163,10 @@ BemVector BemMatrix::operator *(BemVector & v)
     return vtemp;
 }
 
-BemMatrix BemMatrix::operator *(const double & x) const
+template <class Type>
+BemMatrix<Type> BemMatrix<Type>::operator *(const Type & x) const
 {
-    BemMatrix mtemp(m_row, m_column);
+    BemMatrix<Type> mtemp(m_row, m_column);
     mtemp.clear();
     for(int i = 0; i  <  m_row; i++)
     {
@@ -169,9 +178,10 @@ BemMatrix BemMatrix::operator *(const double & x) const
     return mtemp;
 }
 
-BemMatrix operator *(double x, BemMatrix m)
+template <class Type>
+BemMatrix<Type> operator *(Type x, BemMatrix<Type> m)
 {
-    BemMatrix mtemp(m.row(), m.column());
+    BemMatrix<Type> mtemp(m.row(), m.column());
     for(int i = 0; i  <  m.row(); i++)
     {
         for(int j = 0; j  <  m.column(); j++)
@@ -182,28 +192,45 @@ BemMatrix operator *(double x, BemMatrix m)
     return mtemp;
 }
 
-double & BemMatrix::operator() (unsigned row, unsigned column) const
+template <class Type>
+Type & BemMatrix<Type>::operator() (unsigned row, unsigned column) const
 {
     return m_array[m_column * row + column];
 }
 
-void BemMatrix::set(int row, int column, double value)
+template <class Type>
+void BemMatrix<Type>::set(int row, int column, Type value)
 {
     m_array[m_column * row + column] = value;
 }
 
-BemVector BemMatrix::solve(BemVector &v)
+template <>
+BemVector<double> BemMatrix<double>::solve(BemVector<double> &v)
 {
     // Todo: copy of original matrix is performed, decide if this is usefull or not.
-    BemVector result(v);
-    BemMatrix temp(*this);
+    BemVector<double> result(v);
+    BemMatrix<double> temp(*this);
     int * pivots = new int[m_row];
     LAPACKE_dgesv(LAPACK_ROW_MAJOR, m_row, 1, temp.m_array, m_row, pivots, result.m_array, 1);
     delete pivots;
     return result;
 }
 
-QString BemMatrix::toString()
+
+template <>
+BemVector<std::complex<double> > BemMatrix<std::complex<double> >::solve(BemVector<std::complex<double> > &v)
+{
+    // Todo: copy of original matrix is performed, decide if this is usefull or not.
+    BemVector<std::complex<double> > result(v);
+    BemMatrix<std::complex<double> > temp(*this);
+    int * pivots = new int[m_row];
+    LAPACKE_zgesv(LAPACK_ROW_MAJOR, m_row, 1, temp.m_array, m_row, pivots, result.m_array, 1);
+    delete pivots;
+    return result;
+}
+
+template <>
+QString BemMatrix<double>::toString()
 {
     int i,j;
     QString out = "";
@@ -220,15 +247,36 @@ QString BemMatrix::toString()
     return out;
 }
 
+template <>
+QString BemMatrix<std::complex<double> >::toString()
+{
+    int i,j;
+    QString out = "";
 
-void BemMatrix::createArray(int row, int column)
+    for(i = 0; i  <  m_row; i++)
+    {
+        for(j = 0; j  <  m_column; j++)
+        {
+            out.append(QString("%1 + %2j ").arg(m_array[j + i * m_column].real())
+                                            .arg(m_array[j + i * m_column].imag()));
+        }
+        out += "\n";
+    }
+
+    return out;
+}
+
+
+template <class Type>
+void BemMatrix<Type>::createArray(int row, int column)
 {
     this->m_column = column;
     this->m_row = row;
-    m_array = new double [row * column];
+    m_array = new Type [row * column];
 }
 
-void BemMatrix::clear()
+template <class Type>
+void BemMatrix<Type>::clear()
 {
     int i,j;
     for(i = 0; i  <  m_row; i++)
@@ -240,7 +288,8 @@ void BemMatrix::clear()
     }
 }
 
-void BemMatrix::eye()
+template <class Type>
+void BemMatrix<Type>::eye()
 {
     int i,j;
     for(i = 0; i < this->m_row; i++)
@@ -254,35 +303,38 @@ void BemMatrix::eye()
     }
 }
 
-
-BemVector::BemVector(int n)
+template <class Type>
+BemVector<Type>::BemVector(int n)
 {
     this->m_n = n;
-    m_array = new double[n];
+    m_array = new Type[n];
     this->clear();
 }
 
-BemVector::BemVector(const BemVector & v)
+template <class Type>
+BemVector<Type>::BemVector(const BemVector & v)
 {
     m_n = v.n();
-    m_array = new double[m_n];
+    m_array = new Type[m_n];
     for(int i = 0; i < m_n; i++)
     {
         m_array[i] = v.m_array[i];
     }
 }
 
-double BemVector::length() const
-{
-    double length = 0;
-    for(int i =  0; i < m_n; i++)
-    {
-        length += m_array[i] * m_array[i];
-    }
-    return sqrt(length);
-}
+//template <class Type>
+//double BemVector<Type>::length() const
+//{
+//    double length = 0;
+//    for(int i =  0; i < m_n; i++)
+//    {
+//        length += m_array[i] * m_array[i];
+//    }
+//    return sqrt(length);
+//}
 
-void BemVector::operator+=(BemVector & v)
+template <class Type>
+void BemVector<Type>::operator+=(BemVector & v)
 {
     if(v.n() != m_n)
         throw;
@@ -292,7 +344,8 @@ void BemVector::operator+=(BemVector & v)
     }
 }
 
-BemVector BemVector::operator* (const double & x) const
+template <class Type>
+BemVector<Type> BemVector<Type>::operator* (const Type & x) const
 {
     BemVector v(m_n);
     for(int i = 0; i < m_n; i++)
@@ -302,11 +355,11 @@ BemVector BemVector::operator* (const double & x) const
     return v;
 }
 
-
-BemVector BemVector::operator* (BemMatrix & m) const
+template <class Type>
+BemVector<Type> BemVector<Type>::operator* (BemMatrix<Type> & m) const
 {
     {
-        BemVector vtemp(m_n);
+        BemVector<Type> vtemp(m_n);
         vtemp.clear();
 
         for(int i = 0; i  <  m_n; i++)
@@ -320,9 +373,10 @@ BemVector BemVector::operator* (BemMatrix & m) const
     }
 }
 
-BemVector BemVector::operator+(const BemVector & m) const
+template <class Type>
+BemVector<Type> BemVector<Type>::operator+(const BemVector & m) const
 {
-    BemVector vtemp(m_n);
+    BemVector<Type> vtemp(m_n);
 
     for(int i = 0; i  <  m_n; i++)
     {
@@ -332,31 +386,32 @@ BemVector BemVector::operator+(const BemVector & m) const
     return vtemp;
 }
 
-BemComplexVector & BemComplexVector::operator=(const BemComplexVector & v)
+template <class Type>
+Type & BemVector<Type>::operator () (int i)
+{
+    return m_array[i];
+}
+
+template <class Type>
+BemVector<Type> & BemVector<Type>::operator=(const BemVector<Type> & v)
 {
     if(this == &v)
         return *this;
 
     delete[] m_array;
 
-    m_n = v.m_n;
-    m_array = new std::complex<double> [m_n];
+    m_n = v.n();
+    m_array = new Type[m_n];
 
     for(int i = 0; i < m_n; i++)
     {
-        m_array[i] = v.m_array[i];
+            m_array[i] = v.m_array[i];
     }
     return *this;
 }
 
-
-double & BemVector::operator () (int i)
-{
-    return m_array[i];
-}
-
-
-void BemVector::clear()
+template <class Type>
+void BemVector<Type>::clear()
 {    
     for(int i = 0; i  <  m_n; i++)
     {
@@ -364,7 +419,8 @@ void BemVector::clear()
     }
 }
 
-QString BemVector::toString()
+template <>
+QString BemVector<double>::toString()
 {
     QString out = "";
     for(int i = 0; i < m_n; i++)
@@ -375,231 +431,19 @@ QString BemVector::toString()
     return out;
 }
 
-
-BemComplexMatrix::BemComplexMatrix(int row, int column)
-{
-    this->createArray(row, column);
-    this->clear();
-}
-
-BemComplexMatrix::BemComplexMatrix(const BemComplexMatrix & m)
-{
-    this->createArray(m.m_row,m.m_column);
-    for(int i = 0; i  <  this->m_row; i++)
-    {
-        for(int j = 0; j < this->m_column; j++)
-        {
-            this->m_array[j + i * m_column] = m.m_array[j + i * m_column];
-        }
-    }
-}
-
-
-void BemComplexMatrix::createArray(int row, int column)
-{
-    m_column = column;
-    m_row = row;
-    m_array = new std::complex<double>[row * column];
-}
-
-void BemComplexMatrix::clear()
-{
-
-    for(int i = 0; i  <  m_row; i++)
-    {
-        for(int j = 0; j  < m_column; j++)
-        {
-          m_array[(j + m_column * i)].real() = 0;
-          m_array[(j + m_column * i)].imag() = 0;
-        }
-    }
-}
-
-QString BemComplexMatrix::toString()
-{
-
-    QString out = "";
-    for(int i = 0; i  <  m_row; i++)
-    {
-        for(int j = 0; j  < m_column; j++)
-        {            
-            out.append(QString("%1 + ").arg((m_array[(j + i * m_column)].real())));
-            out.append(QString("%1j ").arg((m_array[(j + i * m_column)].imag())));
-        }
-        out += "\n";
-    }
-
-    return out;
-}
-
-std::complex<double> & BemComplexMatrix::operator() (unsigned row, unsigned column)
-{
-    return (m_array[(m_column * row + column)]);
-}
-
-void BemComplexMatrix::set(int row, int column, std::complex<double> number)
-{    
-    m_array[column + row * m_column] = number;
-}
-
-BemComplexMatrix::~BemComplexMatrix()
-{
-    delete[] m_array;
-}
-
-
-BemComplexMatrix & BemComplexMatrix::operator=(const BemComplexMatrix & m)
-{
-    if(this == &m)
-        return *this;
-
-    delete[] m_array;
-
-    this->m_column = m.m_column;
-    this->m_row = m.m_row;
-
-    m_array = new std::complex<double>[m_row * m_column];
-
-    for(int i = 0; i < m_row; i++)
-    {
-        for(int j = 0; j < m_column; j++)
-        {
-            m_array[j + i * m_column] = m.m_array[j + i * m_column];
-        }
-    }
-    return *this;
-}
-
-BemComplexVector BemComplexMatrix::solve(BemComplexVector &v)
-{
-    // Todo: copy of original matrix is performed, decide if this is usefull or not.
-    BemComplexVector result(v);
-    BemComplexMatrix temp(*this);
-    int * pivots = new int[m_row];
-    LAPACKE_zgesv(LAPACK_ROW_MAJOR, m_row, 1, temp.m_array, m_row, pivots, result.m_array, 1);
-    delete pivots;
-    return result;
-}
-
-
-BemComplexVector::BemComplexVector(int n)
-{
-    this->m_n = n;
-    m_array = new std::complex<double>[n];
-    this->clear();
-}
-
-BemComplexVector::BemComplexVector(const BemComplexVector & v)
-{
-    m_n = v.n();
-    m_array = new std::complex<double>[m_n];
-    for(int i = 0; i < m_n; i++)
-    {
-        m_array[i] = v.m_array[i];
-    }
-}
-
-//double BemVector::length() const
-//{
-//    double length = 0;
-//    for(int i =  0; i < m_n; i++)
-//    {
-//        length += m_array[i] * m_array[i];
-//    }
-//    return sqrt(length);
-//}
-
-//void BemComplexVector::operator+=(BemComplexVector & v)
-//{
-//    if(v.n() != m_n)
-//        throw;
-
-//    for(int i = 0; i < m_n; i++)
-//    {
-//        m_array[i] = m_array[i] + v(i).real();
-//        m_array[i] = m_array[i + 1] + v(i).imag();
-//    }
-//}
-
-//BemComplexVector BemComplexVector::operator* (const double & x) const
-//{
-//    BemComplexVector v(m_n);
-//    for(int i = 0; i < m_n; i++)
-//    {
-//        v(i) = m_array[i] * x;
-//    }
-//    return v;
-//}
-
-
-//BemVector BemVector::operator* (BemMatrix & m) const
-//{
-//    {
-//        BemVector vtemp(m_n);
-//        vtemp.clear();
-
-//        for(int i = 0; i  <  m_n; i++)
-//        {
-//            for(int j = 0; j  <  m.row(); j++)
-//            {
-//                vtemp(i) += m_array[j] * m(j, i);
-//            }
-//        }
-//        return vtemp;
-//    }
-//}
-
-//BemVector BemVector::operator+(const BemVector & m) const
-//{
-//    BemVector vtemp(m_n);
-
-//    for(int i = 0; i  <  m_n; i++)
-//    {
-//        vtemp.m_array[i] = m.m_array[i] + m_array[i];
-
-//    }
-//    return vtemp;
-//}
-
-BemVector & BemVector::operator=(const BemVector & v)
-{
-    if(this == &v)
-        return *this;
-
-    delete[] m_array;
-
-    m_n = v.m_n;
-    m_array = new double[m_n];
-
-    for(int i = 0; i < m_n; i++)
-    {
-        m_array[i] = v.m_array[i];
-    }
-    return *this;
-}
-
-
-std::complex<double> & BemComplexVector::operator () (int i)
-{
-    return m_array[i];
-}
-
-
-void BemComplexVector::clear()
-{
-    for(int i = 0; i  <  m_n; i++)
-    {
-        m_array[i] = 0;
-    }
-}
-
-QString BemComplexVector::toString()
+template <>
+QString BemVector<std::complex<double> >::toString()
 {
     QString out = "";
     for(int i = 0; i < m_n; i++)
     {
-        out += QString::number(m_array[i].real());
-        out += " + " + QString::number(m_array[i].imag()) + "j\n";
+        out += QString("%1 + %2j \n").arg(m_array[i].real())
+                .arg(m_array[i].imag());
     }
     return out;
 }
+
+template class BemMatrix<double>;
+template class BemMatrix<std::complex<double> >;
+template class BemVector<double>;
+template class BemVector<std::complex<double> >;

@@ -43,12 +43,13 @@ struct  Node
 {    
     int globalIndex;
     double x, y;
-    double value;
+    double real;
+    double imag;
     double normalDerivation;
     bool isEssential;
 
-    Node() { this->x = 0; this->y = 0; this->value = 0; this->normalDerivation = 0; isEssential = false;}
-    Node(double x, double y) { this->x = x; this->y = y; this->value = 0; this->normalDerivation = 0; isEssential = false;}
+    Node() { this->x = 0; this->y = 0; this->real = 0; this->normalDerivation = 0; isEssential = false;}
+    Node(double x, double y) { this->x = x; this->y = y; this->real = 0; this->normalDerivation = 0; isEssential = false;}
 
     inline Node operator+(const Node & vec) const { return Node(x + vec.x, y + vec.y); }
     inline Node operator-(const Node & vec) const { return Node(x - vec.x, y - vec.y); }
@@ -90,7 +91,6 @@ class Element
 {
 public:
     Element (QList<Node *> nodes);
-    Element (Node * a, Node * b, Node * c);
     int id() const { return m_id; }
     Node gravity() { return m_gravity; }
     double araea() { return m_area;}

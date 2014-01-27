@@ -20,13 +20,15 @@ int main()
     // z = boost::math::cyl_hankel_1(10, 10);
     // qDebug() << z.imag();
 
-    BemComplexMatrix a(2, 2);
-    BemComplexVector b(2);
-    BemComplexVector c(2);
+    BemMatrix<std::complex<double> > a(2, 2);
+    BemVector<std::complex<double> > b(2);
+    BemVector<std::complex<double> > c(2);
     a(0, 0) = 5 + 1J;
 
-//    a(0, 0).real() = 1;
-//    a(0, 0).imag() = 1;
+    c = c + b;
+
+    a(0, 0).real() = 1;
+    a(0, 0).imag() = 1;
 
     a(1, 1).real() = 1;
     a(1, 1).imag() = 1;
@@ -45,17 +47,17 @@ int main()
     c(0).imag() = 1;
 
 
-    std::complex<double> d;
-    cblas_zdotu_sub(2, (std::complex<double> *) b.m_array, 2, (std::complex<double> *) c.m_array, 2, (double *) &d);
+//    std::complex<double> d;
+//    cblas_zdotu_sub(2, (std::complex<double> *) b.m_array, 2, (std::complex<double> *) c.m_array, 2, (double *) &d);
 
     qDebug() << a.toString();
     qDebug() << b.toString();
 
     qDebug() << a.solve(b).toString();
 
-    qDebug() << d.imag();
-    qDebug() << d.real();
-    d = exp(d);
-    qDebug() << d.imag();
-    qDebug() << d.real();
+//    qDebug() << d.imag();
+//    qDebug() << d.real();
+//    d = exp(d);
+//    qDebug() << d.imag();
+//    qDebug() << d.real();
 }

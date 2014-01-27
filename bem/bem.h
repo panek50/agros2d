@@ -47,8 +47,8 @@ public:
     double potentialBoundary(double x, double y);
     Node globalCoordinates(double xi, Segment segment);
     void shapeFunction(int n, double xi, double *result);
-    BemVector shapeFunction2D(int polyOrder, double s, double t);
-    BemVector shapeFunctionDerivative(int polyOrder, double xi);
+    BemVector<double> shapeFunction2D(int polyOrder, double s, double t);
+    BemVector<double> shapeFunctionDerivative(int polyOrder, double xi);
     Node normalVector(double xi, Segment segment);
     double jacobian(int polyOrder, double xi, Segment segment);
 
