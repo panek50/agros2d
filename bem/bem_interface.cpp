@@ -20,16 +20,25 @@
 
 
 Hermes::Hermes2D::ExactSolutionScalar<double>* BemInterface::getSolution()
-{        
-    return  m_solution.data();
+{            
+    return  m_solution;
 }
 
 void BemInterface::solve(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh> mesh)
-{    
-    m_bem = QSharedPointer<Bem>(new Bem(field, mesh));
+{            
+    if(m_bem.isNull())
+    {
+        m_bem = QSharedPointer<Bem>(new Bem(field, mesh));
+    }
+    else
+    {
+        m_bem.clear();
+        m_bem = QSharedPointer<Bem>(new Bem(field, mesh));
+    }
     m_bem->readMesh();
     m_bem->solve();
-    m_solution =  QSharedPointer< BemSolution<double> >(new BemSolution<double>(mesh));
+
+    m_solution =  new BemSolution<double>(mesh);
     m_solution->setSolver(m_bem);
 }
 

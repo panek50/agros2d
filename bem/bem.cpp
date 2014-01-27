@@ -55,7 +55,7 @@ void Bem::readMesh()
                         double value = boundary->value(boundaryType.id()).number();
                         bool isEssential = (boundaryType.essential().count() > 0);
                         Node * firstNode,  * secondNode;
-                       // qDebug() << m_hermesMesh->get_num_vertex_nodes();
+                        // qDebug() << m_hermesMesh->get_num_vertex_nodes();
                         if(atoi(m_hermesMesh->get_boundary_markers_conversion().get_user_marker(e->en[i]->marker).marker.c_str()) == j)
                         {
                             if(!mesh.m_boundaryNodes.contains(node))
@@ -142,7 +142,7 @@ void Bem::readMesh()
         Element element(elementNodes);
         element.setArea(e->get_area());
         SceneLabel * label =  Agros2D::scene()->labels->at(atoi(m_hermesMesh->get_element_markers_conversion().get_user_marker(e->marker).marker.c_str()));
-//        element.setValue(label->marker(m_fieldInfo)->value(m_fieldInfo->materialTypeVariables().at(0).id()).number());
+        //        element.setValue(label->marker(m_fieldInfo)->value(m_fieldInfo->materialTypeVariables().at(0).id()).number());
         element.setValue(1.);
         mesh.m_elements.append(element);
     }
@@ -248,6 +248,8 @@ void Bem::readMesh()
     //            }
     //            qDebug() << "-------------------------";
     //        }
+    mesh.m_nElement = mesh.m_elements.count();
+    mesh.m_nSegment = mesh.m_segments.count();
 }
 
 QString Bem::toString()
@@ -429,8 +431,8 @@ double Bem::kernel_laplace2D_derivation(Node refNode, Segment segment, double xi
 {
     Node r = globalCoordinates(xi, segment) - refNode;
     Node n = normalVector(xi, segment);
-    double rNorm = globalCoordinates(xi, segment).distanceOf(refNode);
-    return - 1.0 / (2 * M_PI) * (n.x *  r.x  + n.y * r.y) / (rNorm * rNorm);
+    double rNormSquared = globalCoordinates(xi, segment).distanceOfSquared(refNode);
+    return - 1.0 / (2 * M_PI) * (n.x *  r.x  + n.y * r.y) / rNormSquared;
 }
 
 std::complex<double> Bem::kernel_helmholtz2D(Node refNode, Segment segment, double xi)
@@ -454,8 +456,6 @@ void Bem::solveComplex()
 
 void Bem::solve()
 {
-
-
     int order = 7;
     int n = mesh.m_segments.count();
 
@@ -507,16 +507,16 @@ void Bem::solve()
                                 dxdb = + 2;
                             }
                         }
-                        double Ni[2];                        
+                        double Ni[2];
                         double Sf[2];
                         shapeFunction(m_polyOrder, gaussCoords[order][l], Ni);
                         shapeFunction(m_polyOrder, gaussLeguerreCoords[order][l], Sf);
                         dU  +=   - 1 / ( 2 * M_PI) *  Ni[k] * jac * segment.m_logJacobian * gaussWeights[order][l] + 1 / (2 * M_PI) * dxdb  * Sf[k] * jac * gaussLeguerreWeights[order][l];
-                    }                                        
+                    }
 
                     if(segment.m_points[k]->isEssential)
                     {
-                        A(i, index) +=  -dU;                        
+                        A(i, index) +=  -dU;
                     }
                     else
                     {
@@ -562,20 +562,20 @@ void Bem::solve()
     }
 
 
-//                qDebug() << diagonal.toString();
-//                qDebug() << A.toString();
-//                qDebug() << C.toString();
+    //                qDebug() << diagonal.toString();
+    //                qDebug() << A.toString();
+    //                qDebug() << C.toString();
 
 
-//    int m = mesh.m_elements.count();
-//    for(int i = 0; i < n; i++ )
-//    {
-//        for(int j = 0; j < m; j++)
-//        {
-//            double R = sqrt((node.x - mesh.m_elements[j].gravity().x) * (node.x - mesh.m_elements[j].gravity().x) + (node.y - mesh.m_elements[j].gravity().y) * (node.y - mesh.m_elements[j].gravity().y));
-//            bp(i) = bp(i) + 1 / (2 * M_PI) * mesh.m_elements[j].value() * log(R) * mesh.m_elements[j].araea();
-//        }
-//    }
+    //    int m = mesh.m_elements.count();
+    //    for(int i = 0; i < n; i++ )
+    //    {
+    //        for(int j = 0; j < m; j++)
+    //        {
+    //            double R = sqrt((node.x - mesh.m_elements[j].gravity().x) * (node.x - mesh.m_elements[j].gravity().x) + (node.y - mesh.m_elements[j].gravity().y) * (node.y - mesh.m_elements[j].gravity().y));
+    //            bp(i) = bp(i) + 1 / (2 * M_PI) * mesh.m_elements[j].value() * log(R) * mesh.m_elements[j].araea();
+    //        }
+    //    }
 
     // qDebug() << bp.toString();
 
@@ -633,7 +633,6 @@ void Bem::solve()
 
     QTime myTimer;
     myTimer.start();
-
     domainSolution();
     int nMilliseconds = myTimer.elapsed();
     qDebug() << nMilliseconds;
@@ -644,24 +643,24 @@ void Bem::domainSolution()
 {    
     for(int i = 0; i < mesh.m_innerNodes.count(); i++)
     {
-        mesh.m_innerNodes[i].value = potential(mesh.m_innerNodes.at(i).x,  mesh.m_innerNodes.at(i).y);
+        mesh.m_innerNodes[i].value = potentialInner(mesh.m_innerNodes.at(i).x,  mesh.m_innerNodes.at(i).y);
     }
 
     for(int i = 0; i < mesh.m_boundaryNodes.count(); i++)
     {
-        mesh.m_boundaryNodes[i].value = potential(mesh.m_boundaryNodes.at(i).x,  mesh.m_boundaryNodes.at(i).y);
-       // qDebug() << potential(mesh.m_nodes.at(i)->x,  mesh.m_nodes.at(i)->y);
+        mesh.m_boundaryNodes[i].value = potentialBoundary(mesh.m_boundaryNodes.at(i).x,  mesh.m_boundaryNodes.at(i).y);
+        // qDebug() << potential(mesh.m_nodes.at(i)->x,  mesh.m_nodes.at(i)->y);
     }
 
     //   qDebug() << "Solution, elements:";
-    foreach(Element element, mesh.m_elements)
-    {
-        for(int i = 0; i < element.m_nodes.count(); i++)
-        {
-            element.nodeValues[i] = element.m_nodes.at(i)->value;
-            //           qDebug() << element.nodeValues[i];
-        }
-    }
+    //    foreach(Element element, mesh.m_elements)
+    //    {
+    //        for(int i = 0; i < element.m_nodes.count(); i++)
+    //        {
+    //            element.nodeValues[i] = element.m_nodes.at(i)->value;
+    //            //           qDebug() << element.nodeValues[i];
+    //        }
+    //    }
 }
 
 double Bem::getValue(double x, double y)
@@ -680,12 +679,52 @@ double Bem::getValue(double x, double y)
     return result;
 }
 
-double Bem::potential(double x, double y)
+double Bem::potentialInner(double x, double y)
 {
     int order = 3;
-    int n = mesh.m_segments.count();
+    int n = mesh.m_nSegment;
 
     double u = 0;
+    Node p(x, y);
+    double dU = 0;
+    double dT = 0;
+
+
+    for(int i = 0; i < n; i++)
+    {
+        Segment segment = mesh.m_segments[i];
+        double delta_u = 0;
+        for(int k = 0; k <= m_polyOrder; k++)
+        {
+            for(int l = 0; l <= order; l++)
+            {
+                double  jac = segment.m_jacobian;
+                double Ni[2];
+                shapeFunction(m_polyOrder, gaussCoords[order][l], Ni);
+                dT += Ni[k] * kernel_laplace2D_derivation(p, segment, gaussCoords[order][l]) * jac * gaussWeights[order][l];
+                dU += Ni[k] * kernel_laplace2D(p, segment, gaussCoords[order][l]) * jac * gaussWeights[order][l];
+            }
+            delta_u =   - dT * segment.m_points[k]->value + dU * segment.m_points[k]->normalDerivation;
+            u = u + delta_u;
+            dT = 0;
+            dU = 0;
+        }
+    }
+
+    //    int m = mesh.m_elements.count();
+    //    for(int i = 0; i < m; i++)
+    //    {
+    //        double R = sqrt((p.x - mesh.m_elements[i].gravity().x) * (p.x - mesh.m_elements[i].gravity().x) + (p.y - mesh.m_elements[i].gravity().y) * (p.y - mesh.m_elements[i].gravity().y));
+    //        u = u - 1 / (2 * M_PI) * mesh.m_elements[i].value() * log(R) * mesh.m_elements[i].araea();
+    //    }
+
+    // qDebug("Time elapsed: %f ms", t.elapsed());
+    return u;
+}
+
+double Bem::potentialBoundary(double x, double y)
+{    
+    int n = mesh.m_nSegment;
     Node p(x, y);
 
     for(int i = 0; i < n; i++)
@@ -711,51 +750,7 @@ double Bem::potential(double x, double y)
         {
             return segment.m_points[0]->value;
         }
-
-        if(segment.distanceOf(p) < EPS_ZERO)
-        {
-            double xi  = segment.parametricCoordinate(p);
-            double result = 0;
-
-            for(int k = 0; k <= m_polyOrder; k++)
-            {
-                double Ni[2];
-                shapeFunction(m_polyOrder, xi, Ni);
-                result +=  Ni[k] * segment.m_points[k]->value;
-            }
-            return result;
-        }
-
-        double dU = 0;
-        double dT = 0;
-
-        double delta_u = 0;
-        for(int k = 0; k <= m_polyOrder; k++)
-        {
-            for(int l = 0; l <= order; l++)
-            {
-                double  jac = segment.m_jacobian;
-                double Ni[2];
-                shapeFunction(m_polyOrder, gaussCoords[order][l], Ni);
-                dT += Ni[k] * kernel_laplace2D_derivation(p, segment, gaussCoords[order][l]) * jac * gaussWeights[order][l];
-                dU += Ni[k] * kernel_laplace2D(p, segment, gaussCoords[order][l]) * jac * gaussWeights[order][l];
-            }
-            delta_u =   - dT * segment.m_points[k]->value + dU * segment.m_points[k]->normalDerivation;
-            u = u + delta_u;
-            dT = 0;
-            dU = 0;
-        }
     }
-
-//    int m = mesh.m_elements.count();
-//    for(int i = 0; i < m; i++)
-//    {
-//        double R = sqrt((p.x - mesh.m_elements[i].gravity().x) * (p.x - mesh.m_elements[i].gravity().x) + (p.y - mesh.m_elements[i].gravity().y) * (p.y - mesh.m_elements[i].gravity().y));
-//        u = u - 1 / (2 * M_PI) * mesh.m_elements[i].value() * log(R) * mesh.m_elements[i].araea();
-//    }
-
-    // qDebug("Time elapsed: %f ms", t.elapsed());
-    return u;
 }
 
 

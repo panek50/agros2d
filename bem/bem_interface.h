@@ -21,7 +21,7 @@ public:
 
 private:
     QSharedPointer<Bem>  m_bem;
-    QSharedPointer < BemSolution<double> >  m_solution;
+    BemSolution<double> *  m_solution;
 };
 
 #endif // BEM_INTERFACE_H

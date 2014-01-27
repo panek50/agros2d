@@ -63,6 +63,7 @@ struct  Node
     inline double magnitudeSquared() const { return (x * x + y * y); }
     inline double angle() const { return atan2(y, x); }
     inline double distanceOf( Node p) { return ((* this) - p).magnitude(); }
+    inline double distanceOfSquared( Node p) { return ((* this) - p).magnitudeSquared(); }
     Node rotate(double angle);
 
     Node normalizeNode() const

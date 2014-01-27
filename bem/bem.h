@@ -43,7 +43,8 @@ public:
 
     QString toString();
     Node integral(Node v, Node a, Node b);
-    double potential(double x, double y);
+    double potentialInner(double x, double y);
+    double potentialBoundary(double x, double y);
     Node globalCoordinates(double xi, Segment segment);
     void shapeFunction(int n, double xi, double *result);
     BemVector shapeFunction2D(int polyOrder, double s, double t);
