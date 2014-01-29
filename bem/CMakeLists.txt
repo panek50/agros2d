@@ -176,8 +176,15 @@ INCLUDE_DIRECTORIES(${CMAKE_AGROS_DIRECTORY}/3rdparty/bson)
 INCLUDE_DIRECTORIES(${CMAKE_AGROS_DIRECTORY}/3rdparty/paralution/src)
 INCLUDE_DIRECTORIES(.)
 
-SET(SOURCES bem.cpp bem_interface.cpp bem_matrix.cpp mesh.cpp)
-SET(HEADERS bem.h bem_interface.h bem_matrix.h mesh.h)
+SET(SOURCES src/solver.cpp 
+	    src/bem_interface.cpp 
+	    src/bem_matrix.cpp 
+	    src/mesh.cpp)
+
+SET(HEADERS src/bem_interface.h
+            src/bem_matrix.h 
+            src/mesh.h 
+            src/solver.h)
 
 ADD_LIBRARY(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
 

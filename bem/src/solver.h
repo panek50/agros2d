@@ -11,28 +11,30 @@
 #include "../agros2d-library/hermes2d/problem_config.h"
 #include "../hermes2d/include/function/exact_solution.h"
 #include "../agros2d-library/hermes2d/solver.h"
+
 #include "bem_matrix.h"
 #include "mesh.h"
 
 
-class Bem
+template <class Type>
+class Solver
 /*! \brief Class Bem offers functionallity of the Boundary element method
  *
  */
 {
 
 public:
-    Bem(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh> mesh);
-    ~Bem() {}
+    Solver(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D::Mesh> mesh);
+    ~Solver() {}
     void readMesh();
     void assemblyMatrices();
     void solve();
-    void solveComplex();
+    void fillResults(BemVector<Type> & results) const;
     void domainSolution();
-    double getValue(double x, double y);
+    Type getValue(double x, double y);
 
-    double quad(int oder, int j, Node node, Segment segment, double (Bem::*kernel)(Node, Segment, double));
-    double gaussLaguerre(int oder, QList<Node> nodes, Segment segment,double (Bem::*kernel)(Node, Segment, double));
+    double quad(int oder, int j, Node node, Segment segment, double (Solver::*kernel)(Node, Segment, double));
+    double gaussLaguerre(int oder, QList<Node> nodes, Segment segment,double (Solver::*kernel)(Node, Segment, double));
 
     double kernel_length(Node refNode, Segment segment, double xi);
     double kernel_laplace2D_derivation(Node refNode, Segment segment, double xi);
@@ -43,8 +45,8 @@ public:
 
     QString toString();
     Node integral(Node v, Node a, Node b);
-    double potentialInner(double x, double y);
-    double potentialBoundary(double x, double y);
+    Type solutionInner(double x, double y);
+    Type solutionBoundary(double x, double y);
     Node globalCoordinates(double xi, Segment segment);
     void shapeFunction(int n, double xi, double *result);
     BemVector<double> shapeFunction2D(int polyOrder, double s, double t);
@@ -71,12 +73,12 @@ public:
     virtual Hermes::Hermes2D::MeshFunction<Scalar>* clone() const;    
     /// Saves the exact solution to an XML file.
     void save(const char* filename) const { }    
-    void setSolver(QSharedPointer<Bem> bem) { m_bem = bem; }
+    void setSolver(QSharedPointer<Solver<double> > bem) { m_bem = bem; }
 
 protected:    
     // virtual void precalculate(int order, int mask) { qDebug() << "OK";}
     double constant;
-    QSharedPointer<Bem> m_bem;
+    QSharedPointer<Solver<double> > m_bem;
 };
 
 

@@ -27,16 +27,17 @@ class Element;
 class Mesh
 {
 public:
-    void read(MeshSharedPtr mesh);                    /*! read the Hermes mesh and build own structures */
+    void read(MeshSharedPtr mesh);       /*! read the Hermes mesh and build own structures */
 
-    QList<Segment> m_segments;      /*! Surface of the body is divided into segments */
-    QList<Element> m_elements;      /*! Volume of the body is divided into elements */
-    QList<Node *> m_nodes;          /*! Boundary nodes */
-    QList<Node> m_innerNodes;       /*! Domain nodes */
-    QList<Node> m_boundaryNodes;
+    QList<Segment> m_segments;          /*! Surface of the body is divided into segments */
+    QList<Element> m_elements;          /*! Volume of the body is divided into elements */
+    QList<Node>    m_points;            /*! All used points */
+    QList<Node *>  m_integrationPoints; /*! Integration points */
+    QList<Node *>  m_innerNodes;        /*! Domain nodes */
+    QList<Node *>  m_boundaryNodes;     /*! Boundary nodes */
 
-    int m_nElement;                 /*! Number of elements */
-    int m_nSegment;                 /*! Number of segments */
+    int m_nElement;                     /*! Number of elements */
+    int m_nSegment;                     /*! Number of segments */
 };
 
 struct  Node
@@ -45,11 +46,12 @@ struct  Node
     double x, y;
     double real;
     double imag;
-    double normalDerivation;
+    double normalDerivationReal;
+    double normalDerivationImag;
     bool isEssential;
 
-    Node() { this->x = 0; this->y = 0; this->real = 0; this->normalDerivation = 0; isEssential = false;}
-    Node(double x, double y) { this->x = x; this->y = y; this->real = 0; this->normalDerivation = 0; isEssential = false;}
+    Node() { this->x = 0; this->y = 0; this->real = 0; this->normalDerivationReal = 0; isEssential = false;}
+    Node(double x, double y) { this->x = x; this->y = y; this->real = 0; this->normalDerivationReal = 0; isEssential = false;}
 
     inline Node operator+(const Node & vec) const { return Node(x + vec.x, y + vec.y); }
     inline Node operator-(const Node & vec) const { return Node(x - vec.x, y - vec.y); }

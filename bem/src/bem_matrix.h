@@ -55,9 +55,13 @@ public:
     BemVector<Type> operator*(BemVector<Type> & v);
     // BemMatrix<Type> operator/(Type x) {return operator * (1 / x); }
     BemVector<Type> solve(BemVector<Type> & v);
-    friend BemMatrix<Type> operator*(Type x, BemMatrix<Type> m);
+
+    template <typename U>
+    friend BemMatrix<U> operator*(U x, BemMatrix<U> m);
+
     // friend BemVector operator*(BemVector v, BemMatrix m);
-    friend BemMatrix<Type> operator/(Type x, BemMatrix<Type> m);
+    template <typename U>
+    friend BemMatrix<U> operator/(U x, BemMatrix<U> m);
 
     int row() const { return m_row; }
     void setRow(int row) { m_row = row; }
@@ -73,13 +77,13 @@ public:
     void eye();
     void clear();
     void gaussElim();
-    void luFactorisation();
-    Type *m_array;
+    void luFactorisation();    
 
 protected:
     void createArray(int m_row, int m_column);    
     int m_row;
     int m_column;
+    Type *m_array;
 };
 
 template <typename Type>
@@ -101,11 +105,13 @@ public:
     QString toString();
     int n() const { return m_n; }
     // double length() const;
-    // friend BemVector<Type> BemMatrix<Type>::solve(BemVector<Type> & v);
-    void clear();
-    Type * m_array;
+
+    template <typename U>
+    friend BemVector<U> BemMatrix<U>::solve(BemVector<U> & v);
+    void clear();    
 
 private:  
+    Type * m_array;
     int m_n;
 };
 

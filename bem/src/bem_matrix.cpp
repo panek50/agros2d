@@ -229,6 +229,7 @@ BemVector<std::complex<double> > BemMatrix<std::complex<double> >::solve(BemVect
     return result;
 }
 
+
 template <>
 QString BemMatrix<double>::toString()
 {

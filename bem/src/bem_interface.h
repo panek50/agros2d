@@ -5,7 +5,7 @@
 
 #include "../util/util.h"
 #include "../agros2d-library/hermes2d/solver_interface.h"
-#include "bem.h"
+#include "solver.h"
 
 class BemInterface: public QObject, SolverInterface
 {
@@ -20,7 +20,7 @@ public:
     virtual Hermes::Hermes2D::ExactSolutionScalar<double>* getSolution();
 
 private:
-    QSharedPointer<Bem>  m_bem;
+    QSharedPointer<Solver<double> >  m_bem;
     BemSolution<double> *  m_solution;
 };
 

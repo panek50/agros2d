@@ -28,12 +28,12 @@ void BemInterface::solve(FieldInfo* field, std::tr1::shared_ptr<Hermes::Hermes2D
 {            
     if(m_bem.isNull())
     {
-        m_bem = QSharedPointer<Bem>(new Bem(field, mesh));
+        m_bem = QSharedPointer<Solver<double> >(new Solver<double>(field, mesh));
     }
     else
     {
         m_bem.clear();
-        m_bem = QSharedPointer<Bem>(new Bem(field, mesh));
+        m_bem = QSharedPointer<Solver<double> >(new Solver<double>(field, mesh));
     }
     m_bem->readMesh();
     m_bem->solve();
