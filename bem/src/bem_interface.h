@@ -20,7 +20,9 @@ public:
     virtual Hermes::Hermes2D::ExactSolutionScalar<double>* getSolution();
 
 private:
+
     QSharedPointer<Solver<double> >  m_bem;
+    // QSharedPointer<Solver<std::complex<double> > >  m_bem;
     BemSolution<double> *  m_solution;
 };
 

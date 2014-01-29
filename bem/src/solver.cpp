@@ -738,10 +738,26 @@ void Solver<std::complex<double> >::fillResults(BemVector<std::complex<double> >
     }
 }
 
-template <typename Type>
-Type Solver<Type>::getValue(double x, double y)
+template <>
+double Solver<double>::getValue(double x, double y)
 {
-    Type result;
+    double result;
+    int n = mesh.m_elements.count();
+    foreach(Element element, mesh.m_elements)
+    {
+        Node p(x,y);
+        if(element.containsPoint(p))
+        {
+            result = element.value(p);
+        }
+    }
+   return result;
+}
+
+template <>
+double Solver<std::complex<double> >::getValue(double x, double y)
+{
+    double result;
     int n = mesh.m_elements.count();
     foreach(Element element, mesh.m_elements)
     {

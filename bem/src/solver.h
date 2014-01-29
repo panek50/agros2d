@@ -31,7 +31,7 @@ public:
     void solve();
     void fillResults(BemVector<Type> & results) const;
     void domainSolution();
-    Type getValue(double x, double y);
+    double getValue(double x, double y);
 
     double quad(int oder, int j, Node node, Segment segment, double (Solver::*kernel)(Node, Segment, double));
     double gaussLaguerre(int oder, QList<Node> nodes, Segment segment,double (Solver::*kernel)(Node, Segment, double));
@@ -73,11 +73,13 @@ public:
     virtual Hermes::Hermes2D::MeshFunction<Scalar>* clone() const;    
     /// Saves the exact solution to an XML file.
     void save(const char* filename) const { }    
+    // void setSolver(QSharedPointer<Solver<std::complex<double> > > bem) { m_bem = bem; }
     void setSolver(QSharedPointer<Solver<double> > bem) { m_bem = bem; }
 
 protected:    
     // virtual void precalculate(int order, int mask) { qDebug() << "OK";}
     double constant;
+    // QSharedPointer<Solver<std::complex<double> > > m_bem;
     QSharedPointer<Solver<double> > m_bem;
 };
 
